@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="res_config_settings_view_form" model="ir.ui.view">
+            <field name="name">res.config.settings.view.form.inherit.stock</field>
+            <field name="model">res.config.settings</field>
+            <field name="priority" eval="30"/>
+            <field name="inherit_id" ref="stock.res_config_settings_view_form" />
+            <field name="arch" type="xml">
+                <xpath expr="//block[@name='integration']" position="inside">
+                    <h2>Ongoing WMS</h2>
+                    <div class="row mt16 o_settings_container">
+                        <div class="col-12 col-lg-12 o_setting_box">
+                            <div class="o_setting_left_pane">
+                                <div class="content-group">
+                                    <field name="activate_ongoing" class="o_light_label"/>
+                                </div>
+                            </div>
+                            <div class="o_setting_right_pane" id="barcode_settings">
+                                <label for="activate_ongoing"/>
+                            </div>
+                        </div>
+                        <div invisible="activate_ongoing == False" class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane">
+                            </div>
+                            <div class="o_setting_right_pane" id="barcode_settings">
+                                <label for="ongoing_url"/>
+                                <div class="content-group">
+                                    <field name="ongoing_url" widget="url" class="o_light_label"/>
+                                </div>
+                            </div>
+                        </div>
+                        <div invisible="activate_ongoing == False" class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane">
+                            </div>
+                            <div class="o_setting_right_pane" id="barcode_settings">
+                                <label for="ongoing_username"/>
+                                <div class="content-group">
+                                    <field name="ongoing_username" class="o_light_label"/>
+                                </div>
+                            </div>
+                        </div>
+                        <div invisible="activate_ongoing == False" class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane">
+                            </div>
+                            <div class="o_setting_right_pane" id="barcode_settings">
+                                <label for="ongoing_password"/>
+                                <div class="content-group">
+                                    <field password="True" name="ongoing_password" class="o_light_label"/>
+                                </div>
+                            </div>
+                        </div>
+                        <div invisible="activate_ongoing == False" class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane">
+                            </div>
+                            <div class="o_setting_right_pane" id="barcode_settings">
+                                <label for="ongoing_good_owner_code"/>
+                                <div class="content-group">
+                                    <field name="ongoing_good_owner_code" class="o_light_label"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

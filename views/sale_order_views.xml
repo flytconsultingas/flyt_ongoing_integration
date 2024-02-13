@@ -1,0 +1,15 @@
+<odoo>
+      <record id="view_order_form_ongoing_wms_connector" model="ir.ui.view">
+        <field name="name">sale.order.form.inherit.ongoing.wms.connector</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header//button[@name='action_confirm']" position="after">
+                <button name="action_sync_product" type="object" string="Sync Product" class="oe_highlight"/>
+            </xpath>
+            <xpath expr="//field[@name='payment_term_id']" position="after">
+                <field name="carrier_id"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

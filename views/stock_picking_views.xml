@@ -1,0 +1,45 @@
+<odoo>
+    <record id="view_picking_form_inherit_ongoing_wms_connector" model="ir.ui.view">
+        <field name="name">stock.picking.form.inherit.ongoing.wms.connector</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header//button[@name='action_confirm']" position="after">
+                <button name="action_sync_in_order" type="object" string="Sync Order" class="oe_highlight"
+                        invisible="(not purchase_id) or (flyt_location_dest_id_usage == 'customer')"
+                        domain="[]"/>
+                <button name="action_sync_so_order" type="object"
+                        invisible="(not sale_id) or (flyt_location_dest_id_usage != 'customer')"
+                        string="Send info to Ongoing" class="oe_highlight" confirm="Are you sure you want to order shipping for this picking?"/>
+                <button name="action_set_tracking_number" type="object"
+                        string="Get Tracking" class="oe_highlight"
+                        invisible="(not sale_id) or (flyt_location_dest_id_usage != 'customer')"
+                         />
+                <button name="action_set_serial_number" type="object" string="Get Serial Number" class="oe_highlight"
+                invisible="(not sale_id) or ( flyt_location_dest_id_usage != 'customer')"
+                />
+            </xpath>
+            <xpath expr="//page[@name='note']" position="after">
+                <page string="Ongoing API">
+                    <group>
+                        <field name="flyt_location_dest_id_usage" invisible="1"/>
+                        <field name="purchase_id" invisible="1"/>
+                        <field name="sale_id" invisible="1"/>
+                        <field name="ongoing_order_id" readonly="True"/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="vpicktree_inherit_ongoing_wms_connector" model="ir.ui.view">
+        <field name="name">stock.picking.tree.ongoing.wms.connector</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.vpicktree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='origin']" position="after">
+                <field name="ongoing_order_id" readonly="True" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
