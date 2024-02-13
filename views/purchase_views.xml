@@ -5,9 +5,7 @@
         <field name="inherit_id" ref="purchase.purchase_order_form"/>
         <field name="arch" type="xml">
             <xpath expr="//header//button[@name='button_confirm']" position="after">
-                <button name="action_sync_product" type="object" string="Sync Product" class="oe_highlight"
-                        invisible="default_location_dest_id_usage == 'customer'"
-                        />
+                <button name="action_sync_product" type="object" string="Sync Product" class="oe_highlight" attrs="{'invisible': [('default_location_dest_id_usage', '=', 'customer')]}"/>
             </xpath>
         </field>
     </record>

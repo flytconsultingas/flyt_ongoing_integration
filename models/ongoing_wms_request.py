@@ -10,7 +10,6 @@ from zeep.exceptions import Fault
 from zeep.wsdl.utils import etree_to_string
 
 from odoo import _
-from odoo.exceptions import ValidationError
 from odoo.modules.module import get_resource_path
 from odoo.tools import remove_accents
 
@@ -38,17 +37,12 @@ class OngoingRequest():
     """ Low-level object intended to interface Odoo recordsets with Ongoing,
         through appropriate SOAP requests """
 
-    def __init__(self, debug_logger, url, username, password, good_owner_code):
+    def __init__(self, debug_logger, username, password, good_owner_code):
         self.debug_logger = debug_logger
         self.username = username
         self.password = password
         self.good_owner_code = good_owner_code
-
-        if not url:
-            raise ValidationError(_('Must configure API URL for Ongoing WMS'))
-
-
-        self.client = Client(url)
+        self.client = Client('https://api.ongoingsystems.se/servicelogistikk/service.asmx?WSDL')
         self.factory = self.client.type_factory("ns0")
 
     # --------------------------

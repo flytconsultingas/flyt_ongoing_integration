@@ -18,12 +18,11 @@ class OngoingLoggerMixing(models.AbstractModel):
 
     def _get_ongoing_credential(self):
         company = self.company_id or self.env.company
-        url = company.ongoing_url
         username = company.ongoing_username
         password = company.ongoing_password
         good_owner_code = company.ongoing_good_owner_code
         
-        return url, username, password, good_owner_code
+        return username, password, good_owner_code
 
     def log_xml(self, xml_string, func):
         self.flush()

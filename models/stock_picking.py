@@ -69,10 +69,10 @@ class StockPicking(models.Model):
         # don't do anything is ongoing service is not activate on company
         if not self.company_id.activate_ongoing:
             return True
-        url, username, password, good_owner_code = self._get_ongoing_credential()
+        username, password, good_owner_code = self._get_ongoing_credential()
         if not username or not password or not good_owner_code:
             raise UserError(_('Credential Missing'))
-        request = OngoingRequest(self.log_xml, url, username, password, good_owner_code)
+        request = OngoingRequest(self.log_xml, username, password, good_owner_code)
 
         intrnal_transfer = self.move_ids.move_dest_ids.mapped('picking_id') ## self = INT transfer
         if self.purchase_id and self.purchase_id.default_location_dest_id_usage == 'customer':
@@ -126,11 +126,11 @@ class StockPicking(models.Model):
             @return - Bool
         """
         #TODO : check for which company we should take the credential (looping on company may be the solution ?)
-        url, username, password, good_owner_code = self._get_ongoing_credential()
+        username, password, good_owner_code = self._get_ongoing_credential()
         if not username or not password or not good_owner_code:
             _logger.info('Ongoing: Credential Missing: Company :: {}'.format(self.env.company.name))
             return True
-        request = OngoingRequest(self.log_xml, url, username, password, good_owner_code)
+        request = OngoingRequest(self.log_xml, username, password, good_owner_code)
         data = self._prepare_get_inbound_order_datas()
         try:
             response = request.get_inbound_order(data)
@@ -235,11 +235,11 @@ class StockPicking(models.Model):
             _logger.info("Trying to ship order that's already shipped")
             raise ValidationError(_("Already shipped"))
 
-        url, username, password, good_owner_code = self._get_ongoing_credential()
+        username, password, good_owner_code = self._get_ongoing_credential()
         if not username or not password or not good_owner_code:
             _logger.info('Ongoing: Credential Missing: Company :: {}'.format(self.env.company.name))
             return True
-        request = OngoingRequest(self.log_xml, url, username, password, good_owner_code)
+        request = OngoingRequest(self.log_xml, username, password, good_owner_code)
         data = self._prepare_out_order_datas()
         try:
             response = request._prepare_process_order(data)
@@ -265,12 +265,12 @@ class StockPicking(models.Model):
         :return: None
         """
 
-        url, username, password, good_owner_code = self._get_ongoing_credential()
+        username, password, good_owner_code = self._get_ongoing_credential()
         if not username or not password or not good_owner_code:
             _logger.info('Ongoing: Credential Missing: Company :: {}'.format(self.env.company.name))
             return True
 
-        request = OngoingRequest(self.log_xml, url, username, password, good_owner_code)
+        request = OngoingRequest(self.log_xml, username, password, good_owner_code)
         pickings = self._get_ongoing_pickings()
         ongoing_response = request._prepare_get_orders_by_query(pickings)
 
@@ -301,16 +301,16 @@ class StockPicking(models.Model):
         self.message_post(body=message)
 
     def _cron_set_serial_number(self):
-        url, username, password, good_owner_code = self._get_ongoing_credential()
-        request = OngoingRequest(self.log_xml, url, username, password, good_owner_code)
+        username, password, good_owner_code = self._get_ongoing_credential()
+        request = OngoingRequest(self.log_xml, username, password, good_owner_code)
         pickings = self._get_ongoing_pickings()
         serial_no_list = pickings._get_serial_numbers(request)
         picking_map = self._prepare_picking_map(serial_no_list)
         pickings._update_serial_number_line(picking_map)
 
     def action_set_serial_number(self):
-        url, username, password, good_owner_code = self._get_ongoing_credential()
-        request = OngoingRequest(self.log_xml, url, username, password, good_owner_code)
+        username, password, good_owner_code = self._get_ongoing_credential()
+        request = OngoingRequest(self.log_xml, username, password, good_owner_code)
         if not self.ongoing_order_id:
             _logger.info("Trying to ship order that's not shipped")
             raise ValidationError(_("Not shipped"))

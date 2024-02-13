@@ -47,10 +47,10 @@ class PurchaseOrder(models.Model):
         if not self.company_id.activate_ongoing:
             return True
         self._check_validation_article()
-        url, username, password, good_owner_code = self._get_ongoing_credential()
+        username, password, good_owner_code = self._get_ongoing_credential()
         if not username or not password or not good_owner_code:
             raise UserError(_('Credential Missing'))
-        request = OngoingRequest(self.log_xml, url, username, password, good_owner_code)
+        request = OngoingRequest(self.log_xml, username, password, good_owner_code)
         for data in self._prepare_article_datas():
             response = request.process_article(data)
             if not response.get('success'):
