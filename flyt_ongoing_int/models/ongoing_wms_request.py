@@ -411,11 +411,11 @@ class OngoingRequest():
             key = line.product_id.id
             if key not in lines:
                 lines[key] = {
-                    'reserved_qty': line.reserved_qty,
+                    'quantity': line.quantity,
                     'default_code': line.product_id.default_code
                 }
             else:
-                lines[key]['reserved_qty'] += line.reserved_qty
+                lines[key]['quantity'] += line.quantity
 
         for order_item in lines.values():
             CustomerOrderLine.append(self._prepare_customer_orderline(order_item))
@@ -428,7 +428,7 @@ class OngoingRequest():
         CustomerOrderLine.OrderLineIdentification = "ArticleNumber"
         CustomerOrderLine.ArticleIdentification = "ArticleNumber"
         CustomerOrderLine.ArticleNumber = order_line['default_code']
-        CustomerOrderLine.NumberOfItems = str(order_line['reserved_qty'])
+        CustomerOrderLine.NumberOfItems = str(order_line['quantity'])
         return CustomerOrderLine
 
     def _prepare_vat_code(self):
