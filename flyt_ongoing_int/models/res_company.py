@@ -14,6 +14,7 @@ class ResCompany(models.Model):
     # self.client = Client('https://colliflow.ongoingsystems.se/servicelogistikk/service.asmx?WSDL')
 
     activate_ongoing = fields.Boolean()
+    ongoing_sync_serial_numbers = fields.Boolean(string="Synchronize serial numbers", default=False)
     ongoing_username = fields.Char()
     ongoing_password = fields.Char()
     ongoing_url = fields.Char(string='URL to Ongoing WMS api', default=DEFAULT_API_URL)

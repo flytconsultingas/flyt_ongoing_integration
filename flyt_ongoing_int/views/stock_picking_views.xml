@@ -5,6 +5,7 @@
         <field name="inherit_id" ref="stock.view_picking_form"/>
         <field name="arch" type="xml">
             <xpath expr="//header//button[@name='action_confirm']" position="after">
+                <field name="ongoing_sync_serial_numbers" invisible="1" />
                 <button name="action_sync_in_order" type="object" string="Sync Order" class="oe_highlight"
                         invisible="(not purchase_id) or (flyt_location_dest_id_usage == 'customer')"
                         domain="[]"/>
@@ -16,7 +17,7 @@
                         invisible="(not sale_id) or (flyt_location_dest_id_usage != 'customer')"
                          />
                 <button name="action_set_serial_number" type="object" string="Get Serial Number" class="oe_highlight"
-                invisible="(not sale_id) or ( flyt_location_dest_id_usage != 'customer')"
+                invisible="(not ongoing_sync_serial_numbers) or (not sale_id) or ( flyt_location_dest_id_usage != 'customer')"
                 />
             </xpath>
             <xpath expr="//page[@name='note']" position="after">

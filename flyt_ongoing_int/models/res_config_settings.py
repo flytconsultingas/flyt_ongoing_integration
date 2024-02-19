@@ -8,6 +8,7 @@ class ResConfigSettings(models.TransientModel):
     _inherit = 'res.config.settings'
 
     activate_ongoing = fields.Boolean(related='company_id.activate_ongoing', readonly=False)
+    ongoing_sync_serial_numbers = fields.Boolean(related='company_id.ongoing_sync_serial_numbers', readonly=False)
     ongoing_url = fields.Char(related='company_id.ongoing_url', readonly=False)
     ongoing_username = fields.Char(related='company_id.ongoing_username', readonly=False)
     ongoing_password = fields.Char(related='company_id.ongoing_password', readonly=False)

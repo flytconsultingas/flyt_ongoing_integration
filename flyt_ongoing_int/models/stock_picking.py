@@ -24,6 +24,8 @@ class StockPicking(models.Model):
     ongoing_order_id = fields.Char(copy=False)
     flyt_location_dest_id_usage = fields.Selection(related='location_dest_id.usage', store=True)
 
+    ongoing_sync_serial_numbers = fields.Boolean(related='company_id.ongoing_sync_serial_numbers', store=False)
+
     def _check_validation_inorder(self):
         partner = self.picking_type_id.warehouse_id.partner_id
         if not len(self.move_ids_without_package):
@@ -301,6 +303,10 @@ class StockPicking(models.Model):
         self.message_post(body=message)
 
     def _cron_set_serial_number(self):
+        company = self.company_id or self.env.company
+        if not company.ongoing_sync_serial_numbers:
+            return
+
         url, username, password, good_owner_code = self._get_ongoing_credential()
         request = OngoingRequest(self.log_xml, url, username, password, good_owner_code)
         pickings = self._get_ongoing_pickings()
@@ -309,6 +315,10 @@ class StockPicking(models.Model):
         pickings._update_serial_number_line(picking_map)
 
     def action_set_serial_number(self):
+        company = self.company_id or self.env.company
+        if not company.ongoing_sync_serial_numbers:
+            return
+
         url, username, password, good_owner_code = self._get_ongoing_credential()
         request = OngoingRequest(self.log_xml, url, username, password, good_owner_code)
         if not self.ongoing_order_id:
@@ -344,6 +354,9 @@ class StockPicking(models.Model):
 
     def _update_serial_number_line(self, picking_map):
         for picking in self:
+            if not picking.company_id.ongoing_sync_serial_numbers:
+                continue
+
             order_id = int(picking.ongoing_order_id)
             if picking_map['status'].get(order_id) == 'Sendt':
                 update_sr_qty_list = picking_map['serial'][order_id]
