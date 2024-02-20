@@ -180,7 +180,7 @@ class OngoingRequest():
             InOrderLine = self.factory.InOrderLine()
             InOrderLine.OrderLineIdentification = 'ArticleNumber'
             InOrderLine.ArticleIdentification = 'ArticleNumber'
-            InOrderLine.NumberOfItems = line['quantity']
+            InOrderLine.NumberOfItems = line['product_uom_qty']
             InOrderLine.ArticleNumber = line['product_code']
             lines.append(InOrderLine)
         InOrderLines.InOrderLine = lines
