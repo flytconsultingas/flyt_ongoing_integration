@@ -120,6 +120,16 @@ class StockPicking(models.Model):
             self = self.with_company(company)
             self._sync_inbound_order()
 
+
+    ### return orders
+    @api.model
+    def _cron_get_return_order(self):
+        companies = self.env['res.company'].search([('activate_ongoing', '=', True)], order='name desc')
+        for company in companies:
+            self = self.with_company(company)
+            self._sync_return_order()
+
+
     @api.model
     def _sync_inbound_order(self):
         """
@@ -429,3 +439,16 @@ class StockPicking(models.Model):
                     product_dict.update({'done_qty': product_dict.get('done_qty') + serial.get('done_qty')})
                     break
         return update_list
+
+    @api.model
+    def _sync_return_order(self):
+        company = self.company_id or self.env.company
+        if not company.activate_ongoing:
+            return True
+
+        url, username, password, good_owner_code = self._get_ongoing_credential()
+        if not username or not password or not good_owner_code:
+            raise UserError(_('Credential Missing'))
+        request = OngoingRequest(self.log_xml, url, username, password, good_owner_code)
+        res = request.get_return_orders_ongoing()
+        _logger.info('Retur ordre %s', res)

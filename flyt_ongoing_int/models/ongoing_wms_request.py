@@ -632,3 +632,27 @@ class OngoingRequest():
         except IOError:
             formatted_response['message'] = "Ongoing Server Not Found"
         return formatted_response
+
+    def get_return_orders_ongoing(self):
+        formatted_response = {
+            'success': False,
+            'message': False,
+            'serial_no_list': False,
+        }
+        try:
+            self.response = self.client.service.GetReturnOrdersByQuery(
+                UserName=self.username,
+                Password=self.password,
+                GoodsOwnerCode='Lillelam, Odoo',
+                ReturnOrdersQuery=self.factory.GetReturnOrdersQuery()
+            )
+            _logger.info(self.response)
+            assert not self.response['ReturnOrders']
+
+        except IOError:
+            formatted_response['message'] = "Ongoing Server Not Found"
+
+        if 'Success' in self.response:
+            formatted_response['success'] = self.response.Success
+
+        return formatted_response
