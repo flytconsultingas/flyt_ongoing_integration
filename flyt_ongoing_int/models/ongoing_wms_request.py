@@ -56,18 +56,24 @@ class OngoingRequest():
     # --------------------------
 
     def _prepare_article_defination(self, data):
-        ArticleDefination = self.factory.ArticleDefinition()
-        ArticleDefination.ArticleNumber = data.get('default_code')
-        ArticleDefination.ArticleName = data.get('name')
-        ArticleDefination.BarCode = data.get('barcode')
-        ArticleDefination.PurchasePrice = data.get('price')
-        ArticleDefination.ArticleUnitCode = data.get('uom')
+        ArticleDefinition = self.factory.ArticleDefinition()
+        ArticleDefinition.ArticleNumber = data.get('default_code')
+        ArticleDefinition.ArticleName = data.get('name')
+        ArticleDefinition.BarCode = data.get('barcode')
+        ArticleDefinition.PurchasePrice = data.get('price')
+        ArticleDefinition.ArticleUnitCode = data.get('uom')
 
         ArticleOperation = self.factory.ArticleOperation('CreateOrUpdate')
         ArticleIdentificationType = self.factory.ArticleIdentificationType('ArticleNumber')
-        ArticleDefination.ArticleOperation = ArticleOperation
-        ArticleDefination.ArticleIdentification = ArticleIdentificationType
-        return ArticleDefination
+        ArticleDefinition.ArticleOperation = ArticleOperation
+        ArticleDefinition.ArticleIdentification = ArticleIdentificationType
+        if data.get('supplier'):
+            ArticleDefinition.MainSupplier = self._prepare_supplier(
+                data.get('supplier'))
+        if data.get('alternate_suppliers'):
+            ArticleDefinition.AlternativeSuppliers = self.factory.AlternativeSuppliers(self._prepare_suppliers(
+                data.get('alternate_suppliers')))
+        return ArticleDefinition
 
     def process_article(self, data):
         formatted_response = {
@@ -265,15 +271,16 @@ class OngoingRequest():
         OrderInfoClass.DeliveryInstruction = sale_id.client_order_ref
         OrderInfoClass.DeliveryDate = data['in_date']
         OrderInfoClass.ConsigneeOrderNumber = sale_id.client_order_ref
-        OrderInfoClass.WayOfDeliveryType = self._prepare_way_of_delivery_type()
+        OrderInfoClass.WayOfDeliveryType = self._prepare_way_of_delivery_type(data['move_type'])
         OrderInfoClass.TermsOfDeliveryType = self._prepare_terms_of_delivery_type()
         return OrderInfoClass
 
-    def _prepare_way_of_delivery_type(self):
+    def _prepare_way_of_delivery_type(self, way):
         WayOfDeliveryType = self.factory.WayOfDeliveryType()
-        WayOfDeliveryType.WayOfDeliveryTypeOperation = "Find"
-        WayOfDeliveryType.WayOfDeliveryTypeIdentification = "Name"
-        WayOfDeliveryType.Name = "Standard"
+        WayOfDeliveryType.WayOfDeliveryTypeOperation = "CreateOrUpdate"
+        WayOfDeliveryType.WayOfDeliveryTypeIdentification = "Code"
+        WayOfDeliveryType.Code = way[0]
+        WayOfDeliveryType.Name = way[1]
         return WayOfDeliveryType
 
     def _prepare_terms_of_delivery_type(self):
@@ -389,6 +396,43 @@ class OngoingRequest():
         Customer.NotifyByTelephone = "true" if email else "false"
         Customer.IsVisible = "false"
         return Customer
+
+
+    def _prepare_supplier(self, data):
+        #partner = data['sale_id'].partner_shipping_id
+        #shipping_address = self._create_shipping_address(partner, data['sale_id'])
+        Supplier = self.factory.Supplier()
+        supplier_number = data['partner_id']
+
+        #remark = data['sale_id'].client_order_ref
+        email = data['email']
+        mobile = data['mobile']
+        country_code = data["country_code"]
+
+        Supplier.SupplierOperation = "CreateOrUpdate"
+        Supplier.SupplierIdentificationType = "SupplierNumber"
+        Supplier.SupplierNumber = supplier_number
+        Supplier.SupplierName = data['name']
+        Address = self.factory.AddressClass()
+        Address.Address = data['street']
+        Address.Address2 = data['street2']
+        #Supplier.Address3 = address3
+        Address.PostCode = data['zip']
+        Address.City = data['city']
+        Address.Telephone = data['phone']
+        Address.Remark = data['remark']
+        Address.Email = email
+        Address.MobilePhone = data['mobile']
+        Address.CountryCode = country_code if country_code else "NO"
+        Address.NotifyBySMS = "true" if mobile else "false"
+        Address.NotifyByEmail = "true" if email else "false"
+        Address.NotifyByTelephone = "true" if email else "false"
+        Address.IsVisible = "false"
+        Supplier.Address = Address
+        return Supplier
+
+    def _prepare_suppliers(self, data):
+        return [self.factory.AlternativeSupplier(self._prepare_supplier(supp)) for supp in data]
 
     def _prepare_transporter_contract(self, data):
         _logger.info("Preparing the transporter contract")

@@ -34,6 +34,7 @@ class StockPicking(models.Model):
             raise UserError(_('Internal Reference on product is missing'))
 
     def _get_lines(self):
+        """ Get stock.move lines from a stock.picking. Used to send InOrder lines to Ongoing """
         lines = []
         for line in self.move_ids_without_package:
             lines.append({
@@ -64,11 +65,11 @@ class StockPicking(models.Model):
 
     def action_sync_in_order(self):
         """
-            This function will call from the button and is reposible to create purchase
+            This function will call from the button and is responsible for creating purchase
             order on ongoing platform
             @return - bool
         """
-        # don't do anything is ongoing service is not activate on company
+        # don't do anything if ongoing service is not activated on company
         if not self.company_id.activate_ongoing:
             return True
         url, username, password, good_owner_code = self._get_ongoing_credential()
@@ -202,6 +203,9 @@ class StockPicking(models.Model):
                             ('picking_type_id.code', '=', 'outgoing'),
                             ('state', '=', 'assigned')])
 
+    def _prepare_move_type(self, move_type):
+        return (move_type, dict(self._fields['move_type'].selection).get(move_type))
+
     def _prepare_out_order_datas(self):
         internal_transfer = self.move_ids.move_dest_ids.mapped('picking_id')
         order_items = self.env['stock.move.line'].search([['picking_id', '=', self.id]])
@@ -211,6 +215,7 @@ class StockPicking(models.Model):
             'order_items': order_items or self.move_ids_without_package.move_line_ids,
             'reference': internal_transfer.name if internal_transfer and len(internal_transfer) == 1 else self.name,
             'in_date': self.scheduled_date or '',
+            'move_type': self._prepare_move_type(self.move_type)
         }
         return data
 

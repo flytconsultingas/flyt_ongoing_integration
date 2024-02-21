@@ -6,11 +6,15 @@
         <field name="arch" type="xml">
             <xpath expr="//header//button[@name='action_confirm']" position="after">
                 <field name="ongoing_sync_serial_numbers" invisible="1" />
+                <field name="ongoing_order_id" invisible="1" />
                 <button name="action_sync_in_order" type="object" string="Sync Order" class="oe_highlight"
                         invisible="(not purchase_id) or (flyt_location_dest_id_usage == 'customer')"
                         domain="[]"/>
+                <button name="action_sync_so_order_disabled"
+                        invisible="(not ongoing_order_id) or (not sale_id) or (flyt_location_dest_id_usage != 'customer')"
+                        string="Send info to Ongoing" class="btn btn-primary disabled" />
                 <button name="action_sync_so_order" type="object"
-                        invisible="(not sale_id) or (flyt_location_dest_id_usage != 'customer')"
+                        invisible="ongoing_order_id or ((not sale_id) or (flyt_location_dest_id_usage != 'customer'))"
                         string="Send info to Ongoing" class="oe_highlight" confirm="Are you sure you want to order shipping for this picking?"/>
                 <button name="action_set_tracking_number" type="object"
                         string="Get Tracking" class="oe_highlight"

@@ -31,7 +31,27 @@ class PurchaseOrder(models.Model):
         if any(not p.default_code for p in self.order_line.mapped('product_id')):
             raise UserError(_('Internal Reference on product is missing'))
 
+    def _prepare_supplier_data(self, partner_id):
+        return {
+            'partner_id': partner_id.id,
+            'name': partner_id.name,
+            'street': partner_id.street,
+            'street2': partner_id.street2,
+            'zip': (partner_id.state_id and partner_id.state_id.code + ' ' or '') + partner_id.zip,
+            'city': partner_id.city,
+            'phone': partner_id.phone,
+            'email': partner_id.email,
+            'mobile': partner_id.mobile,
+            'country_code': partner_id.country_code,
+            'remark': partner_id.comment,
+        }
+    def _prepare_all_supplier_data(self, product):
+        return [
+            self._prepare_supplier_data(s.partner_id)
+        for s in product.seller_ids ]
+
     def _prepare_article_datas(self):
+        """ Called from purchase """
         return [
             {
                 'name': l.product_id.name,
@@ -39,6 +59,8 @@ class PurchaseOrder(models.Model):
                 'barcode': l.product_id.barcode,
                 'price': l.price_unit,
                 'uom': l.product_uom.name,
+                'supplier': self._prepare_supplier_data(l.partner_id),
+                'alternate_suppliers': self._prepare_all_supplier_data(l.product_id)
             } for l in self.order_line]
 
     def action_sync_product(self):
