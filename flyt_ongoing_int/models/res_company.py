@@ -15,6 +15,7 @@ class ResCompany(models.Model):
 
     activate_ongoing = fields.Boolean()
     ongoing_sync_serial_numbers = fields.Boolean(string="Synchronize serial numbers", default=False)
+    ongoing_use_shipping_name = fields.Boolean(string="Use shipping address name instead of customer name", default=False)
     ongoing_username = fields.Char()
     ongoing_password = fields.Char()
     ongoing_url = fields.Char(string='URL to Ongoing WMS api', default=DEFAULT_API_URL)

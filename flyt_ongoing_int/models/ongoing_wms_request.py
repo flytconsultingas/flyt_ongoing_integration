@@ -295,7 +295,9 @@ class OngoingRequest():
         parent = None
         order = sale_id
 
-        if hasattr(order, "flyt_so_ordered_by_contact"):
+        if not hasattr(order, "flyt_so_ordered_by_contact") or (order.company_id and order.company_id.ongoing_use_shipping_name):
+            recipient_name = partner.name
+        else:
             if order.flyt_so_ordered_by_contact.parent_id:
                 has_parent = True
                 parent = order.flyt_so_ordered_by_contact.parent_id
@@ -303,10 +305,9 @@ class OngoingRequest():
             recipient_name = (order.flyt_so_ordered_by_contact.name if
                               order.flyt_so_ordered_by_contact.name else
                               partner.parent_id.name if partner.parent_id else partner.name)
-        else:
-            recipient_name = partner.name
 
-        recipient_name = partner.parent_id.name if partner.parent_id else recipient_name
+        if not (order.company_id and order.company_id.ongoing_use_shipping_name):
+            recipient_name = partner.parent_id.name if partner.parent_id else recipient_name
 
         if has_parent:
             recipient_name = parent.name
@@ -445,6 +446,9 @@ class OngoingRequest():
         TransporterContractClass.TransporterServiceCode = data['sale_id'].carrier_id.fh_transport_service_code
         return TransporterContractClass
 
+    def _get_line_qty(self, line):
+        return getattr(line, 'quantity_product_uom', None) or getattr(line, 'product_uom_qty')
+
     def _prepare_customer_order_lines(self, data):
         ArrayOfCustomerOrderLine = self.factory.ArrayOfCustomerOrderLine()
         order_items = data['order_items']
@@ -455,11 +459,11 @@ class OngoingRequest():
             key = line.product_id.id
             if key not in lines:
                 lines[key] = {
-                    'quantity': line.quantity,
+                    'quantity': self._get_line_qty(line),
                     'default_code': line.product_id.default_code
                 }
             else:
-                lines[key]['quantity'] += line.quantity
+                lines[key]['quantity'] += self._get_line_qty(line)
 
         for order_item in lines.values():
             CustomerOrderLine.append(self._prepare_customer_orderline(order_item))

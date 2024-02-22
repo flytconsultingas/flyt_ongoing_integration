@@ -219,10 +219,15 @@ class StockPicking(models.Model):
     def _prepare_out_order_datas(self):
         internal_transfer = self.move_ids.move_dest_ids.mapped('picking_id')
         order_items = self.env['stock.move.line'].search([['picking_id', '=', self.id]])
+        if not order_items:
+            # last part is new
+            order_items = self.move_ids_without_package.move_line_ids or self.move_ids_without_package
+
+
         data = {
             'sale_id' : self.sale_id,
             'picking_id' : self,
-            'order_items': order_items or self.move_ids_without_package.move_line_ids,
+            'order_items': order_items,
             'reference': internal_transfer.name if internal_transfer and len(internal_transfer) == 1 else self.name,
             'in_date': self.scheduled_date or '',
             'move_type': self._prepare_move_type(self.move_type)
@@ -304,7 +309,7 @@ class StockPicking(models.Model):
 
     def _cron_set_tracking_number(self):
         pickings = self._get_ongoing_pickings()
-        _logger.info('Found these pickings')
+        _logger.info('Found these pickings GURBA')
         _logger.info(pickings)
         pickings._set_tracking_number()
 
