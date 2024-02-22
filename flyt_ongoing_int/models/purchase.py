@@ -37,7 +37,7 @@ class PurchaseOrder(models.Model):
             'name': partner_id.name,
             'street': partner_id.street,
             'street2': partner_id.street2,
-            'zip': (partner_id.state_id and partner_id.state_id.code + ' ' or '') + partner_id.zip,
+            'zip': (partner_id.state_id and partner_id.state_id.code + ' ' or '') + (partner_id.zip or ''),
             'city': partner_id.city,
             'phone': partner_id.phone,
             'email': partner_id.email,
