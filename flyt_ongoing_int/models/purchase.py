@@ -35,15 +35,15 @@ class PurchaseOrder(models.Model):
         return {
             'partner_id': partner_id.id,
             'name': partner_id.name,
-            'street': partner_id.street,
-            'street2': partner_id.street2,
+            'street': partner_id.street or '',
+            'street2': partner_id.street2 or '',
             'zip': (partner_id.state_id and partner_id.state_id.code + ' ' or '') + (partner_id.zip or ''),
-            'city': partner_id.city,
-            'phone': partner_id.phone,
-            'email': partner_id.email,
-            'mobile': partner_id.mobile,
-            'country_code': partner_id.country_code,
-            'remark': partner_id.comment,
+            'city': partner_id.city or '',
+            'phone': partner_id.phone or '',
+            'email': partner_id.email or '',
+            'mobile': partner_id.mobile or '',
+            'country_code': partner_id.country_code or 'NO',
+            'remark': partner_id.comment or '',
         }
     def _prepare_all_supplier_data(self, product):
         return [
@@ -76,6 +76,7 @@ class PurchaseOrder(models.Model):
         for data in self._prepare_article_datas():
             response = request.process_article(data)
             if not response.get('success'):
+                _logger.error('Error updating inorder line %s', data['name'])
                 message = response.get('message', '')
                 if response.get('error_message'):
                     message = message + '\n' + response['error_message']
