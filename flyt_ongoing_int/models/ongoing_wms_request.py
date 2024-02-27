@@ -381,10 +381,10 @@ class OngoingRequest():
         address3 = shipping_address["address3"]
         zipcode = str(shipping_address["zipcode"])
         city = shipping_address["city"]
-        phone = str(partner.phone)
+        phone = partner.phone or ''
         remark = data['sale_id'].client_order_ref
         email = partner.email
-        mobile = partner.mobile
+        mobile = partner.mobile or ''
         country_code = shipping_address["country_code"]
 
         Customer.CustomerOperation = "CreateOrUpdate"
