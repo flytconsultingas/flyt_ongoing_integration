@@ -185,6 +185,8 @@ class StockPicking(models.Model):
                         if isinstance(res, dict) and res.get('res_model') == 'stock.backorder.confirmation':
                             backorder_wizard = backOrderModel.with_context(res['context']).create({'pick_ids': [(4, picking.id)]})
                             backorder_wizard.process()
+                    else:
+                        _logger.warning('No moves to validate for picking %s', picking)
                     picking.company_id.last_inbound_sync = fields.Datetime.now()
                     #picking.ongoing_auto_validation()
                     cr.commit()
