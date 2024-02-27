@@ -172,7 +172,7 @@ class StockPicking(models.Model):
         for k, v in orders.items():
             try:
                 # Used to be: picking = Picking.search([('ongoing_order_id', '=', k), ('picking_type_code', '=', 'internal'), ('state', 'not in', ['cancel', 'done'])], limit=1)
-                picking = Picking.search([('ongoing_order_id', '=', k), ('picking_type_code', '=', 'receipts'),
+                picking = Picking.search([('ongoing_order_id', '=', k), ('picking_type_code', '=', 'incoming'),
                                           ('state', 'not in', ['cancel', 'done'])], limit=1)
                 if not picking:
                     _logger.warning('No picking in correct state with ongoing_order %s', k)
