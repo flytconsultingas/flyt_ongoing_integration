@@ -179,6 +179,15 @@ class OngoingRequest():
         InOrderCustomer.CountryCode = data['customer_country']
         return InOrderCustomer
 
+    def _prepare_inorder_supplierinfo(self, data):
+        InOrderSupplier = self.factory.InOrderSupplier()
+        InOrderSupplier.InOrderSupplierIdentificationType = 'SupplierNumber'
+        InOrderSupplier.InOrderSupplierOperation = 'Find'
+        InOrderSupplier.SupplierNumber = data['supplier_number']
+        #InOrderSupplier.SupplierName = ''
+
+        return InOrderSupplier
+
     def _prepare_inorder_orderlineinfo(self, data):
         InOrderLines = self.factory.ArrayOfInOrderLine()
         lines = []
@@ -200,6 +209,7 @@ class OngoingRequest():
         InOrder = self.factory.InOrder()
         InOrder.InOrderLines = InOrderLines
         #InOrder.InOrderCustomer = InOrderCustomer
+        InOrder.InOrderSupplier = self._prepare_inorder_supplierinfo(data)
         InOrder.InOrderInfo = InOrderInfo
         return InOrder
 

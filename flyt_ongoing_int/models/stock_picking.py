@@ -56,6 +56,7 @@ class StockPicking(models.Model):
             # 'customer_phone': partner.phone,
             # 'customer_mobile': partner.mobile,
             # 'customer_country': partner.country_id.code,
+            'supplier_number': self.partner_id.id,
             'reference': internal_transfer.name if internal_transfer and len(internal_transfer) == 1 else self.name,
             'lines': self._get_lines(),
             'order_date': self.purchase_id.date_approve or '',
@@ -109,7 +110,7 @@ class StockPicking(models.Model):
         today = fields.Datetime.now()
         date_from = self.env.company.last_inbound_sync
         return {
-            'date_from': date_from,
+            #'date_from': date_from,
             'date_to': today,
         }
 
@@ -176,14 +177,16 @@ class StockPicking(models.Model):
                     moves = picking.move_ids.filtered(lambda m: m.state not in ['cancel', 'done'] and m.product_id.tracking == 'none' and v.get(m.product_id.default_code))
                     for move in moves:
                         rounding = move.product_id.uom_id.rounding
-                        if float_compare(move.quantity_done, v.get(move.product_id.default_code), precision_rounding=rounding) == -1:
-                            move.quantity_done = v.get(move.product_id.default_code)
+                        # TODO Used to be quantity_done
+                        if float_compare(move.product_uom_qty, v.get(move.product_id.default_code), precision_rounding=rounding) == -1:
+                            move.product_uom_qty = v.get(move.product_id.default_code)
                     if moves:
                         res = picking.with_context(skip_overprocessed_check=True).button_validate()
                         if isinstance(res, dict) and res.get('res_model') == 'stock.backorder.confirmation':
                             backorder_wizard = backOrderModel.with_context(res['context']).create({'pick_ids': [(4, picking.id)]})
                             backorder_wizard.process()
                     picking.company_id.last_inbound_sync = fields.Datetime.now()
+                    #picking.ongoing_auto_validation()
                     cr.commit()
             except Exception as e:
                 _logger.info('Ongoing: Failed to sync inbound order: {}'.format(str(e)))
@@ -245,10 +248,11 @@ class StockPicking(models.Model):
             _logger.info(record)
             cannot_send = False
             for line in record.move_ids:
-                if line.product_uom_qty != line.reserved_availability:
+                # TODO Verify this, used to be product_uom_qty != reserved_availability
+                if line.product_uom_qty != line.quantity:
                     cannot_send = True
             if cannot_send:
-                _logger.info('An ordered product is not on stock. Skipping this transfer.')
+                _logger.info('An ordered product is not in stock. Skipping this transfer - %s.', record.name)
             else:
                 record.action_sync_so_order()
 
@@ -445,6 +449,25 @@ class StockPicking(models.Model):
                     break
         return update_list
 
+    def _process_return_order(self, response):
+        """ @see https://developer.ongoingwarehouse.com/get-return-orders-by-query """
+        new_ids = []
+        for info in response.GetReturnOrdersByQueryResult.ReturnOrders:
+            order = {}
+            order['return_code'] = info.ReturnCauseCode
+            order['lines'] = [
+                [ {
+                    'product_id': article.OriginalArticleItemId,
+                   'quantity': article.NumberOfItems
+                   }
+                    for article in line.ReturnedArticleItems
+                ] for line in info.ReturnOrderLines
+            ]
+
+            new_ids.append(self.create(order))
+        return new_ids
+
+
     @api.model
     def _sync_return_order(self):
         company = self.company_id or self.env.company
@@ -455,5 +478,21 @@ class StockPicking(models.Model):
         if not username or not password or not good_owner_code:
             raise UserError(_('Credential Missing'))
         request = OngoingRequest(self.log_xml, url, username, password, good_owner_code)
-        res = request.get_return_orders_ongoing()
-        _logger.info('Retur ordre %s', res)
+        try:
+            response = request.get_return_orders_ongoing()
+        except Exception as e:
+            _logger.info('Ongoing: Failed to connect! :: {}'.format(str(e)))
+            return True
+
+        _logger.info('Retur ordre %s', response)
+
+        if not response.get('success'):
+            message = response.get('message', '')
+            if response.get('error_message'):
+                message = message + '\n' + response['error_message']
+            _logger.info('Ongoing: Failed to Sync Return order :: {}'.format(message))
+            return True
+
+        self._process_return_order(response)
+
+        return True
