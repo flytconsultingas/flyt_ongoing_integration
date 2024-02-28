@@ -281,11 +281,16 @@ class OngoingRequest():
         OrderInfoClass.DeliveryInstruction = sale_id.client_order_ref
         OrderInfoClass.DeliveryDate = data['in_date']
         OrderInfoClass.ConsigneeOrderNumber = sale_id.client_order_ref
-        OrderInfoClass.WayOfDeliveryType = self._prepare_way_of_delivery_type(data['move_type'])
+
+        OrderInfoClass.WayOfDeliveryType = self._prepare_way_of_delivery_type(data)
         OrderInfoClass.TermsOfDeliveryType = self._prepare_terms_of_delivery_type()
         return OrderInfoClass
 
-    def _prepare_way_of_delivery_type(self, way):
+    def _prepare_way_of_delivery_type(self, data):
+        # used to be move_type, but now is (transport_service_code, name)
+        # Maybe use data['carrier'] to use picking carrier
+        way = (data['sale_id'].carrier_id.transport_service_code,
+               data['sale_id'].carrier_id.name)
         WayOfDeliveryType = self.factory.WayOfDeliveryType()
         WayOfDeliveryType.WayOfDeliveryTypeOperation = "CreateOrUpdate"
         WayOfDeliveryType.WayOfDeliveryTypeIdentification = "Code"
@@ -453,7 +458,7 @@ class OngoingRequest():
         TransporterContractClass.TransporterContractIdentification = "ServiceCode"
         TransporterContractClass.TransporterContractOperation = "Find"
         TransporterContractClass.TransportPayment = "Prepaid"
-        TransporterContractClass.TransporterServiceCode = data['sale_id'].carrier_id.fh_transport_service_code
+        TransporterContractClass.TransporterServiceCode = data['sale_id'].carrier_id.transport_service_code
         return TransporterContractClass
 
     def _get_line_qty(self, line):
