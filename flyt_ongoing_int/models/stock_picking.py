@@ -95,7 +95,7 @@ class StockPicking(models.Model):
         title = _('Synced with Ongoing WMS')
         message = '<strong>{}</strong> <br/> <strong>In Order ID :: </strong> {} <br/> <strong>Message ::</strong> {}'.format(title, response.get('in_order_id', ''), response.get('message', ''))
         self.ongoing_order_id = response.get('in_order_id', '')
-        self.message_post(title=title, body=message, body_is_html=True)
+        self.message_post(body=message, body_is_html=True)
 
         for int_picking in intrnal_transfer:
             int_picking.last_sync_on = fields.Datetime.now()
