@@ -11,6 +11,8 @@ from odoo import models, api, fields, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools import float_compare
 from .ongoing_wms_request import OngoingRequest
+from markupsafe import Markup
+
 
 _logger = logging.getLogger(__name__)
 
@@ -93,14 +95,14 @@ class StockPicking(models.Model):
 
         self.last_sync_on = fields.Datetime.now()
         title = _('Synced with Ongoing WMS')
-        message = '<strong>{}</strong> <br/> <strong>In Order ID :: </strong> {} <br/> <strong>Message ::</strong> {}'.format(title, response.get('in_order_id', ''), response.get('message', ''))
+        message = Markup('<strong>{}</strong> <br/> <strong>In Order ID :: </strong> {} <br/> <strong>Message ::</strong> {}'.format(title, response.get('in_order_id', ''), response.get('message', '')))
         self.ongoing_order_id = response.get('in_order_id', '')
-        self.message_post(body=message, body_is_html=True)
+        self.message_post(body=message)
 
         for int_picking in intrnal_transfer:
             int_picking.last_sync_on = fields.Datetime.now()
             int_picking.ongoing_order_id = response.get('in_order_id', '')
-            int_picking.message_post(body=message, body_is_html=True)
+            int_picking.message_post(body=message)
         return True
 
     def _prepare_get_inbound_order_datas(self):
@@ -285,9 +287,9 @@ class StockPicking(models.Model):
                 return True
             self.last_sync_on = fields.Datetime.now()
             title = _('Synced with Ongoing WMS')
-            message = '<strong>{}</strong> <br/> <strong>Order ID :: </strong> {} <br/> <strong>Message ::</strong> {}'.format(title, response.get('order_id', ''), response.get('message', ''))
+            message = Markup('<strong>{}</strong> <br/> <strong>Order ID :: </strong> {} <br/> <strong>Message ::</strong> {}'.format(title, response.get('order_id', ''), response.get('message', '')))
             self.ongoing_order_id = response.get('order_id', '')
-            self.message_post(title=title, body=message, body_is_html=True)
+            self.message_post(title=title, body=message)
         except Exception as e:
             _logger.info('Ongoing: Failed to connect! :: {}'.format(str(e)))
         return True
@@ -330,8 +332,8 @@ class StockPicking(models.Model):
             raise ValidationError(_("Not shipped"))
         self._set_tracking_number()
         title = _('Get Tracking Number')
-        message = '<strong>{}</strong> <br/> <strong>Tracking Number :: </strong> {}'.format(title, self.carrier_tracking_ref)
-        self.message_post(title=title, body=message, body_is_html=True)
+        message = Markup('<strong>{}</strong> <br/> <strong>Tracking Number :: </strong> {}'.format(title, self.carrier_tracking_ref))
+        self.message_post(body=message)
 
     def _cron_set_serial_number(self):
         company = self.company_id or self.env.company
@@ -429,8 +431,7 @@ class StockPicking(models.Model):
                     stock_lot_ids -= lot
                 move.move_line_ids = lines_to_create
         if unknown_serial_numbers:
-            self.message_post(body=f'List Of Serial Number {", ".join(unknown_serial_numbers)}<br /> Does Not Exist In Odoo.',
-                              body_is_html=True)
+            self.message_post(body=Markup(f'List Of Serial Number {", ".join(unknown_serial_numbers)}<br /> Does Not Exist In Odoo.'),)
 
     def _find_serial_numbers_in_lot(self, serial_no_list, product_code_list):
         stock_lot = self.env['stock.lot']
