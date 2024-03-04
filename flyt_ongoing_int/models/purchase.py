@@ -46,6 +46,9 @@ class PurchaseOrder(models.Model):
             'remark': partner_id.comment or '',
         }
     def _prepare_all_supplier_data(self, product):
+        if not product.seller_ids:
+            return None
+
         return [
             self._prepare_supplier_data(s.partner_id)
         for s in product.seller_ids ]
