@@ -80,7 +80,9 @@ class StockPicking(models.Model):
             raise UserError(_('Credential Missing'))
         request = OngoingRequest(self.log_xml, url, username, password, good_owner_code)
 
-        intrnal_transfer = self.move_ids.move_dest_ids.mapped('picking_id') ## self = INT transfer
+        ##### Denne har utgåande også... internal_transfer = self.move_ids.move_dest_ids.mapped('picking_id') ## self = INT transfer
+        internal_transfer = self.move_ids.move_dest_ids.filtered(lambda p: p.picking_type_id.code == 'internal').mapped('picking_id')
+
         if self.purchase_id and self.purchase_id.default_location_dest_id_usage == 'customer':
             return False
 
@@ -99,7 +101,7 @@ class StockPicking(models.Model):
         self.ongoing_order_id = response.get('in_order_id', '')
         self.message_post(body=message)
 
-        for int_picking in intrnal_transfer:
+        for int_picking in internal_transfer:
             int_picking.last_sync_on = fields.Datetime.now()
             int_picking.ongoing_order_id = response.get('in_order_id', '')
             int_picking.message_post(body=message)
