@@ -21,3 +21,4 @@ class ResCompany(models.Model):
     ongoing_url = fields.Char(string='URL to Ongoing WMS api', default=DEFAULT_API_URL)
     ongoing_good_owner_code = fields.Char(string='Good Owner Code')
     last_inbound_sync = fields.Datetime()
+    last_return_sync_on = fields.Datetime(tracking=True)

@@ -289,7 +289,7 @@ class StockPicking(models.Model):
             title = _('Synced with Ongoing WMS')
             message = Markup('<strong>{}</strong> <br/> <strong>Order ID :: </strong> {} <br/> <strong>Message ::</strong> {}'.format(title, response.get('order_id', ''), response.get('message', '')))
             self.ongoing_order_id = response.get('order_id', '')
-            self.message_post(title=title, body=message)
+            self.message_post(body=message)
         except Exception as e:
             _logger.info('Ongoing: Failed to connect! :: {}'.format(str(e)))
         return True
@@ -322,7 +322,7 @@ class StockPicking(models.Model):
 
     def _cron_set_tracking_number(self):
         pickings = self._get_ongoing_pickings()
-        _logger.info('Found these pickings GURBA')
+        _logger.info('Found these pickings')
         _logger.info(pickings)
         pickings._set_tracking_number()
 
@@ -477,6 +477,33 @@ class StockPicking(models.Model):
         return new_ids
 
 
+    def process_return_orders(self, orders):
+        for order in orders['Order']:
+            orderid = order['OrderInfo']['OrderId']
+            picked = order['PickedOrderLines']
+            if not picked:
+                continue
+            returns = [(x['Article'], x['ExternalOrderLineCode'], x['ReturnedNumberOfItems'])
+                       for x in picked['PickedOrderLine']]
+            # artikkel = SystemId Name ArticleNumber
+            _logger.info('Returns for order %s is %s', orderid, returns)
+            for ret in returns:
+                if not ret[1]:
+                    _logger.error('No external order line code')
+                    continue
+
+                line = self.env['stock.move.line'].search([('ongoing_line_number', '=', ret[1])])
+                if not line:
+                    raise ValidationError(_('Order line with ongoing number %s not found') % ret[1])
+                retline = line.copy()
+                retline.quantity = ret[2]
+                src = retline.location_id
+                dst = retline.location_dest_id
+                retline.location_id = dst # Turn around
+                retline.location_dest_id = src
+                message = Markup('<strong>Created return move</strong>')
+                line.picking_id.message_post(body=message)
+
     @api.model
     def _sync_return_order(self):
         company = self.company_id or self.env.company
@@ -487,21 +514,8 @@ class StockPicking(models.Model):
         if not username or not password or not good_owner_code:
             raise UserError(_('Credential Missing'))
         request = OngoingRequest(self.log_xml, url, username, password, good_owner_code)
-        try:
-            response = request.get_return_orders_ongoing()
-        except Exception as e:
-            _logger.info('Ongoing: Failed to connect! :: {}'.format(str(e)))
-            return True
-
-        _logger.info('Retur ordre %s', response)
-
-        if not response.get('success'):
-            message = response.get('message', '')
-            if response.get('error_message'):
-                message = message + '\n' + response['error_message']
-            _logger.info('Ongoing: Failed to Sync Return order :: {}'.format(message))
-            return True
-
-        self._process_return_order(response)
-
+        ongoing_response = request._prepare_get_orders_by_query(last_sync=company.last_return_sync_on)
+        if ongoing_response['response']:
+            company.last_return_sync_on = fields.Datetime.now()
+            self.process_return_orders(ongoing_response['response'])
         return True

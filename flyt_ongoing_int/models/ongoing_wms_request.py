@@ -462,7 +462,10 @@ class OngoingRequest():
         return TransporterContractClass
 
     def _get_line_qty(self, line):
-        return getattr(line, 'quantity_product_uom', None) or getattr(line, 'product_uom_qty')
+        if hasattr(line, 'quantity_product_uom'):
+            return getattr(line, 'quantity_product_uom', None)
+        else:
+            return getattr(line, 'product_uom_qty')
 
     def _prepare_customer_order_lines(self, data):
         ArrayOfCustomerOrderLine = self.factory.ArrayOfCustomerOrderLine()
@@ -475,7 +478,8 @@ class OngoingRequest():
             if key not in lines:
                 lines[key] = {
                     'quantity': self._get_line_qty(line),
-                    'default_code': line.product_id.default_code
+                    'default_code': line.product_id.default_code,
+                    'line_number': line.ongoing_line_number,
                 }
             else:
                 lines[key]['quantity'] += self._get_line_qty(line)
@@ -492,6 +496,7 @@ class OngoingRequest():
         CustomerOrderLine.ArticleIdentification = "ArticleNumber"
         CustomerOrderLine.ArticleNumber = order_line['default_code']
         CustomerOrderLine.NumberOfItems = str(order_line['quantity'])
+        CustomerOrderLine.ExternalOrderLineCode = str(order_line['line_number'])
         return CustomerOrderLine
 
     def _prepare_vat_code(self):
@@ -548,7 +553,7 @@ class OngoingRequest():
         CustomerOrder.CustomerOrderLines = self._prepare_customer_order_lines(data)
         return CustomerOrder
 
-    def _prepare_get_orders_by_query(self, data):
+    def _prepare_get_orders_by_query(self, data=None, last_sync=None):
         formatted_response = {
             'error_message': False,
             'goods_owner_order_number': False,
@@ -564,10 +569,12 @@ class OngoingRequest():
                 GoodsOwnerCode=self.good_owner_code,
                 UserName=self.username,
                 Password=self.password,
-                query=self._prepare_orders(data),
+                query=self._prepare_orders(data, last_sync),
             )
             _logger.info(self.response)
             formatted_response['response'] = self.response
+            if not self.response:
+                return formatted_response
 
             if 'ErrorMessage' in self.response:
                 formatted_response['error_message'] = self.response.ErrorMessage
@@ -616,17 +623,25 @@ class OngoingRequest():
 
         return picking_map
 
-    def _prepare_orders(self, pickings):
-        OrderFilters = self.factory.OrderFilters()
-        ArrayOfInt = self.factory.ArrayOfInt()
+    def _prepare_orderids(self, pickings):
         ongoing_order_ids = [picking.ongoing_order_id for picking in pickings]
-
+        ArrayOfInt = self.factory.ArrayOfInt()
         int = []
         for ongoing_order_id in ongoing_order_ids:
             int.append(ongoing_order_id)
 
         ArrayOfInt.int = int
-        OrderFilters.OrderIdsToGet = ArrayOfInt
+        return ArrayOfInt
+
+    def _prepare_orders(self, pickings, last_sync=None):
+        OrderFilters = self.factory.OrderFilters()
+
+        if pickings:
+            OrderFilters.OrderIdsToGet = self._prepare_orders(pickings)
+
+        if last_sync:
+            OrderFilters.LastReturnedFrom = last_sync
+
         return OrderFilters
 
     def _get_serial_numbers_ongoing(self, order_id):
@@ -659,11 +674,11 @@ class OngoingRequest():
             'serial_no_list': False,
         }
         try:
-            self.response = self.client.service.GetReturnOrdersByQuery(
+            self.response = self.client.service.GetOrdersByQuery(
                 UserName=self.username,
                 Password=self.password,
                 GoodsOwnerCode='Lillelam, Odoo',
-                ReturnOrdersQuery=self.factory.GetReturnOrdersQuery()
+                GetOrdersQuery=self._prepare_get_orders_by_query(),
             )
             _logger.info(self.response)
             assert not self.response['ReturnOrders']
