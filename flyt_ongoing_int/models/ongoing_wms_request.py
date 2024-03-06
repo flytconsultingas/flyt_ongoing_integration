@@ -637,7 +637,7 @@ class OngoingRequest():
         OrderFilters = self.factory.OrderFilters()
 
         if pickings:
-            OrderFilters.OrderIdsToGet = self._prepare_orders(pickings)
+            OrderFilters.OrderIdsToGet = self._prepare_orderids(pickings)
 
         if last_sync:
             OrderFilters.LastReturnedFrom = last_sync
