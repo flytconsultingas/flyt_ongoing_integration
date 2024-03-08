@@ -176,13 +176,15 @@ class StockPicking(models.Model):
         for k, v in orders.items():
             try:
                 # Used to be: picking = Picking.search([('ongoing_order_id', '=', k), ('picking_type_code', '=', 'internal'), ('state', 'not in', ['cancel', 'done'])], limit=1)
-                picking = Picking.search([('ongoing_order_id', '=', k), ('picking_type_code', '=', 'incoming'),
+                picking = Picking.search([('ongoing_order_id', '=', '%d' % k), ('picking_type_code', '=', 'incoming'),
                                           ('state', 'not in', ['cancel', 'done'])], limit=1)
                 if not picking:
                     _logger.warning('No picking in correct state with ongoing_order %s', k)
                 else:
                     #TODO :  should be handle batch/serial number
                     moves = picking.move_ids.filtered(lambda m: m.state not in ['cancel', 'done'] and m.product_id.tracking == 'none' and v.get(m.product_id.default_code))
+                    if not moves:
+                        _logger.warning('No moves in picking %s match the criteria', picking.name)
                     for move in moves:
                         rounding = move.product_id.uom_id.rounding
                         # TODO Used to be quantity_done
