@@ -491,7 +491,7 @@ class StockPicking(models.Model):
             _logger.info('Returns for order %s is %s', orderid, returns)
             created_lines = []
             lines2process = []
-            pickings = []
+            pickings = {}
             for ret in returns:
                 if not ret[1] or ret[1]=='False':
                     _logger.error('No external order line code')
@@ -511,23 +511,42 @@ class StockPicking(models.Model):
                 lines2process.append((line, ret[2]))
                 if not picking in pickings:
                     pickings[picking] = []
-                pickings[picking].append((line, ret[2]))
+                pickings[picking].append((ret[1], ret[2]))
 
-            for ret in lines2process:
-                line = ret[0]
-                created_lines.append(line.ongoing_line_number)
-                qty = ret[1]
-                retline = line.copy()
-                if retline.ongoing_line_number:
-                    retline.ongoing_line_number += '_r'
-                retline.quantity = qty
-                src = retline.location_id
-                dst = retline.location_dest_id
-                retline.location_id = dst # Turn around
-                retline.location_dest_id = src
-                message = Markup('<strong>Created return move</strong>')
-                line.picking_id.message_post(body=message)
+            for picking, linez in pickings.items():
+                retpicking = picking.copy()
+                retpicking.ongoing_order_id = picking.ongoing_order_id
+                _logger.info('Copy of picking %s is called %s', picking.name, retpicking.name)
+                src = retpicking.location_id
+                dst = retpicking.location_dest_id
+                retpicking.location_id = dst  # Turn around
+                retpicking.location_dest_id = src
+                message = Markup(f'<strong>Created return move</strong> from picking {picking.name} for Ongoing order {picking.ongoing_order_id}')
+                retpicking.message_post(body=message)
+                linemap = dict([(x['ongoing_line_number'], x) for x in retpicking.move_ids])
+                for (line_no, qty) in linez:
+                    # line = self.env['stock.move'].search([('ongoing_line_number', '=', line_no)])
+                    line = linemap[line_no]
+                    line.quantity = qty
+                    line.ongoing_line_number += '_r'
+                    #line.message_post(body=message)
 
+    def process_linez(self):
+
+        for ret in lines2process:
+            line = ret[0]
+            created_lines.append(line.ongoing_line_number)
+            qty = ret[1]
+            retline = line.copy()
+            if retline.ongoing_line_number:
+                retline.ongoing_line_number += '_r'
+            retline.quantity = qty
+            src = retline.location_id
+            dst = retline.location_dest_id
+            retline.location_id = dst  # Turn around
+            retline.location_dest_id = src
+            message = Markup('<strong>Created return move</strong>')
+            line.picking_id.message_post(body=message)
 
     def finn_sml(self):
         ###
