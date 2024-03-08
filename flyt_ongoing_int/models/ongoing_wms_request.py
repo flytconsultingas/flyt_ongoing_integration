@@ -13,6 +13,7 @@ from odoo import _
 from odoo.exceptions import ValidationError
 from odoo.modules.module import get_resource_path
 from odoo.tools import remove_accents
+import random
 
 
 _logger = logging.getLogger(__name__)
@@ -474,6 +475,9 @@ class OngoingRequest():
 
         lines = {}
         for line in order_items:
+            if not line.ongoing_line_number:
+                line.ongoing_line_number = random.randrange(1000)
+                raise ValidationError(_('No Ongoing Line number for line with id %d') % line.id)
             key = line.product_id.id
             if key not in lines:
                 lines[key] = {

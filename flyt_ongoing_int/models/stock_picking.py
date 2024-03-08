@@ -489,22 +489,59 @@ class StockPicking(models.Model):
                        for x in picked['PickedOrderLine']]
             # artikkel = SystemId Name ArticleNumber
             _logger.info('Returns for order %s is %s', orderid, returns)
+            created_lines = []
+            lines2process = []
+            pickings = []
             for ret in returns:
-                if not ret[1]:
+                if not ret[1] or ret[1]=='False':
                     _logger.error('No external order line code')
                     continue
 
-                line = self.env['stock.move.line'].search([('ongoing_line_number', '=', ret[1])])
+                if ret[1] in created_lines:
+                    _logger.error('More than one %d', ret[1])
+                    continue
+
+                line = self.env['stock.move'].search([('ongoing_line_number', '=', ret[1])])
                 if not line:
                     raise ValidationError(_('Order line with ongoing number %s not found') % ret[1])
+                if len(line) > 1:
+                    raise ValidationError(_('More than one order line with ongoing numer %s found') % ret[1])
+
+                picking = line.picking_id
+                lines2process.append((line, ret[2]))
+                if not picking in pickings:
+                    pickings[picking] = []
+                pickings[picking].append((line, ret[2]))
+
+            for ret in lines2process:
+                line = ret[0]
+                created_lines.append(line.ongoing_line_number)
+                qty = ret[1]
                 retline = line.copy()
-                retline.quantity = ret[2]
+                if retline.ongoing_line_number:
+                    retline.ongoing_line_number += '_r'
+                retline.quantity = qty
                 src = retline.location_id
                 dst = retline.location_dest_id
                 retline.location_id = dst # Turn around
                 retline.location_dest_id = src
                 message = Markup('<strong>Created return move</strong>')
                 line.picking_id.message_post(body=message)
+
+
+    def finn_sml(self):
+        ###
+        line = self.env['stock.move.line'].search([('ongoing_line_number', '=', ret[1])])
+        if not line:
+            raise ValidationError(_('Order line with ongoing number %s not found') % ret[1])
+        retline = line.copy()
+        retline.quantity = ret[2]
+        src = retline.location_id
+        dst = retline.location_dest_id
+        retline.location_id = dst  # Turn around
+        retline.location_dest_id = src
+        message = Markup('<strong>Created return move</strong>')
+        line.picking_id.message_post(body=message)
 
     @api.model
     def _sync_return_order(self):
