@@ -11,3 +11,4 @@ from . import sale_order
 from . import delivery_carrier
 from . import stock_move
 from . import stock_move_line
+from . import product_product

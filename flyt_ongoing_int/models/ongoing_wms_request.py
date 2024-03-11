@@ -56,7 +56,7 @@ class OngoingRequest():
         # Sync Products
     # --------------------------
 
-    def _prepare_article_defination(self, data):
+    def _prepare_article_definition(self, data):
         ArticleDefinition = self.factory.ArticleDefinition()
         ArticleDefinition.ArticleNumber = data.get('default_code')
         ArticleDefinition.ArticleName = data.get('name')
@@ -91,7 +91,7 @@ class OngoingRequest():
                 GoodsOwnerCode=self.good_owner_code,
                 UserName=self.username,
                 Password=self.password,
-                art=self._prepare_article_defination(data),
+                art=self._prepare_article_definition(data),
             )
             _logger.info(self.response)
             if 'ErrorMessage' in self.response:

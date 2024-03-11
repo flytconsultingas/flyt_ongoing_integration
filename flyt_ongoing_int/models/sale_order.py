@@ -27,9 +27,9 @@ class SaleOrder(models.Model):
     def _prepare_article_datas(self):
         return [
             {
-                'name': l.product_id.name,
+                'name': l.product_id.short_display_name,
                 'default_code': l.product_id.default_code,
-                'barcode': l.product_id.barcode,
+                'barcode': l.product_id.barcode or '',
                 'price': l.price_unit,
                 'uom': l.product_uom.name,
             } for l in self.order_line]

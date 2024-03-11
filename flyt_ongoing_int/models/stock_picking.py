@@ -388,7 +388,7 @@ class StockPicking(models.Model):
                 picking_map.get('tracking') and picking_map.get('tracking').get(order_id, False)
             if tracking_id:
                 picking.carrier_tracking_ref = tracking_id
-                # Since it has a tracking this means it has been sent
+                # Since it has a tracking this means it has been sent. So we validate it.
                 picking.button_validate()
 
     def _update_serial_number_line(self, picking_map):
