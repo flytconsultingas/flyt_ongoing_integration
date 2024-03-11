@@ -4,6 +4,7 @@ import random
 class Product(models.Model):
     _inherit = ['product.product']
 
+    @api.depends('name', 'code', 'default_code')
     def _calc_short_display_name(self):
         for prod in self:
             dn = prod.display_name
