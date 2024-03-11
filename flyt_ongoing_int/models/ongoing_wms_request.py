@@ -477,7 +477,6 @@ class OngoingRequest():
         for line in order_items:
             if not line.ongoing_line_number:
                 line.ongoing_line_number = random.randrange(1000)
-                raise ValidationError(_('No Ongoing Line number for line with id %d') % line.id)
             key = line.product_id.id
             if key not in lines:
                 lines[key] = {
