@@ -527,6 +527,9 @@ class StockPicking(models.Model):
                 pickings[picking].append((ret[1], ret[2]))
 
             for picking, linez in pickings.items():
+                if [x[1] for x in linez if not (x[1])]:
+                    _logger.error('Zero qty return. Should not happen')
+                    continue
                 retpicking = picking.copy()
                 retpicking.ongoing_order_id = picking.ongoing_order_id
                 linenumbers = [x[0] for x in linez]
