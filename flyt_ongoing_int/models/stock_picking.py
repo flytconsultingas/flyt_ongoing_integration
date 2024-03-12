@@ -507,8 +507,11 @@ class StockPicking(models.Model):
 
                 line = self.env['stock.move'].search([('ongoing_line_number', '=', ret[1])])
                 if not line:
-                    _logger.error('Order line with ongoing number %s not found' % ret[1])
-                    continue
+                    _logger.info('Move with ongoing number %s not found, looking for moveline' % ret[1])
+                    line = self.env['stock.move.line'].search([('ongoing_line_number', '=', ret[1])])
+                    if not line:
+                        _logger.error('Move Line with ongoing number %s not found either' % ret[1])
+                        continue
                 if len(line) > 1:
                     raise ValidationError(_('More than one order line with ongoing numer %s found') % ret[1])
 

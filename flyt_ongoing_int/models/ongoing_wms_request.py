@@ -478,7 +478,8 @@ class OngoingRequest():
             if not line.ongoing_line_number:
                 ongoing_line_number = random.randrange(1000)
                 line.update({'ongoing_line_number': ongoing_line_number})
-                _logger.debug('Writing line number %s for line id %s', ongoing_line_number, line.id)
+                picking = (line.picking_id and line.picking_id.name) or line.picking_id
+                _logger.debug('%s Writing line number %s for line id %s - picking %s', line, ongoing_line_number, line.id, picking)
             else:
                 ongoing_line_number = line.ongoing_line_number
             key = line.product_id.id
