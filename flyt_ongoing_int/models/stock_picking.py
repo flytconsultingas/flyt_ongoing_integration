@@ -295,7 +295,7 @@ class StockPicking(models.Model):
             self.ongoing_order_id = response.get('order_id', '')
             self.message_post(body=message)
         except Exception as e:
-            _logger.info('Ongoing: Failed to connect! :: {}'.format(str(e)))
+            _logger.exception('Ongoing: Failed to connect! :: %s', e)
         return True
 
     def _set_tracking_number(self):

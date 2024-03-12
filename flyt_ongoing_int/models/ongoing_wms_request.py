@@ -476,18 +476,22 @@ class OngoingRequest():
         lines = {}
         for line in order_items:
             if not line.ongoing_line_number:
-                line.ongoing_line_number = random.randrange(1000)
+                ongoing_line_number = random.randrange(1000)
+                line.write({'ongoing_line_number': ongoing_line_number})
+                _logger.debug('Writing line number %s for line id %s', ongoing_line_number, line.id)
+            else:
+                ongoing_line_number = line.ongoing_line_number
             key = line.product_id.id
             if key not in lines:
                 lines[key] = {
                     'quantity': self._get_line_qty(line),
                     'default_code': line.product_id.default_code,
-                    'line_number': line.ongoing_line_number,
+                    'line_number': ongoing_line_number,
                 }
             else:
                 lines[key]['quantity'] += self._get_line_qty(line)
 
-        _logger.debug('prepare_customer_order_lines %s', ','.join([x['line_number'] for x in lines.values()]))
+        _logger.debug('prepare_customer_order_lines %s', ','.join(['%s' % x['line_number'] for x in lines.values()]))
 
         for order_item in lines.values():
             CustomerOrderLine.append(self._prepare_customer_orderline(order_item))
@@ -545,8 +549,10 @@ class OngoingRequest():
                 formatted_response['message'] = self.response.Message
         except Fault as fault:
             formatted_response['errors_message'] = fault
-        except IOError:
+            raise fault
+        except IOError as error:
             formatted_response['errors_message'] = "Ongoing Server Not Found"
+            raise error
         return formatted_response
 
     def _prepare_customer_order(self, data):
