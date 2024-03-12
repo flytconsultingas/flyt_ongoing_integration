@@ -543,15 +543,20 @@ class StockPicking(models.Model):
 
                 linemap = {}
                 # Nuke the copied lines afterwards, to escape the "Quantity or Reserved Quantity should be set" exception.
-                copied_moves = retpicking.move_ids
+                copied_moves = retpicking.move_ids.filtered(lambda k: k.ongoing_line_number not in linenumbers)
+                old_moves = retpicking.move_ids
+                _logger.debug('Copying stock.move')
                 for move in picking.move_ids.filtered(lambda k: k.ongoing_line_number in linenumbers):
                     newline = self.copy_line(move, retpicking)
+                    _logger.debug('Copying a stock.move %s into %s', move, newline)
                     linemap[move.ongoing_line_number] = newline
+                _logger.debug('Deleting old ones %s out of %s', copied_moves, old_moves)
                 copied_moves.unlink()
 
                 movelinemap = {}
                 orglines = self.env['stock.move.line'].search([('ongoing_line_number', 'in', linenumbers)])
                 # Moves are duplicated by copy, movelines are not
+                _logger.debug('Copying stock move lines')
                 for moveline in orglines.filtered(lambda k: k.ongoing_line_number in linenumbers):
                     newline = self.copy_line(moveline, retpicking)
                     movelinemap[moveline.ongoing_line_number] = newline
