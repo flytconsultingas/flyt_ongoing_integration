@@ -487,6 +487,8 @@ class OngoingRequest():
             else:
                 lines[key]['quantity'] += self._get_line_qty(line)
 
+        _logger.debug('prepare_customer_order_lines %s', ','.join([x['line_number'] for x in lines.values()]))
+
         for order_item in lines.values():
             CustomerOrderLine.append(self._prepare_customer_orderline(order_item))
         ArrayOfCustomerOrderLine.CustomerOrderLine = CustomerOrderLine
@@ -554,6 +556,7 @@ class OngoingRequest():
         CustomerOrder.Customer = self._prepare_customer(data)
         CustomerOrder.TransporterContract = self._prepare_transporter_contract(data)
         CustomerOrder.CustomerOrderLines = self._prepare_customer_order_lines(data)
+        _logger.debug('prepare_customer_order %s', CustomerOrder)
         return CustomerOrder
 
     def _prepare_get_orders_by_query(self, data=None, last_sync=None):
