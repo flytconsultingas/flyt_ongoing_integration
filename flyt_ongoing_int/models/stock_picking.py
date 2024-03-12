@@ -537,7 +537,7 @@ class StockPicking(models.Model):
                     # line = self.env['stock.move'].search([('ongoing_line_number', '=', line_no)])
                     line = linemap.get(line_no) or movelinemap.get(line_no)
                     if not line:
-                        raise ValidationError(_('Did not find Ongoing Line Number %d in map.') % line_no)
+                        raise ValidationError(_('Did not find Ongoing Line Number %s in map.') % line_no)
                     line.quantity = qty
                     line.ongoing_line_number += '_r'
                     #line.message_post(body=message)
