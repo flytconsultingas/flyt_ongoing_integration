@@ -559,7 +559,9 @@ class StockPicking(models.Model):
                 _logger.debug('Copying stock move lines')
                 for moveline in orglines.filtered(lambda k: k.ongoing_line_number in linenumbers):
                     newline = self.copy_line(moveline, retpicking)
+                    _logger.debug('Copying a stock.move.line %s into %s', moveline, newline)
                     movelinemap[moveline.ongoing_line_number] = newline
+                _logger.debug('Copied stock move lines')
 
                 for (line_no, qty) in linez:
                     # line = self.env['stock.move'].search([('ongoing_line_number', '=', line_no)])
@@ -567,6 +569,7 @@ class StockPicking(models.Model):
                     _logger.info('Updating line %s with line no %s/%s', line, line_no, line.ongoing_line_number)
                     if not line:
                         raise ValidationError(_('Did not find Ongoing Line Number %s in map.') % line_no)
+                    _logger.debug('Updating %s quantity %s to %s', line, quantity, qty)
                     line.quantity = qty
                     #line.message_post(body=message)
         _logger.info('Finished processing return orders.')
