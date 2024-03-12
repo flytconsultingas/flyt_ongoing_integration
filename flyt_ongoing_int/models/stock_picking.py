@@ -513,6 +513,7 @@ class StockPicking(models.Model):
                         _logger.error('Move Line with ongoing number %s not found either' % ret[1])
                         continue
                 if len(line) > 1:
+                    _logger.info('More than one order line with ongoing number %s found: %s', ret[1], line)
                     raise ValidationError(_('More than one order line with ongoing numer %s found') % ret[1])
 
                 picking = line.picking_id
@@ -524,23 +525,46 @@ class StockPicking(models.Model):
             for picking, linez in pickings.items():
                 retpicking = picking.copy()
                 retpicking.ongoing_order_id = picking.ongoing_order_id
-                _logger.info('Copy of picking %s is called %s', picking.name, retpicking.name)
+                linenumbers = [x[0] for x in linez]
+                _logger.info('Copy of picking %s is called %s, processing lines %s', picking.name, retpicking.name, linenumbers)
                 src = retpicking.location_id
                 dst = retpicking.location_dest_id
                 retpicking.location_id = dst  # Turn around
                 retpicking.location_dest_id = src
                 message = Markup(f'<strong>Created return move</strong> from picking {picking.name} for Ongoing order {picking.ongoing_order_id}')
                 retpicking.message_post(body=message)
-                linemap = dict([(x['ongoing_line_number'], x) for x in retpicking.move_ids])
-                movelinemap = dict([(x['ongoing_line_number'], x) for x in retpicking.move_line_ids])
+
+                linemap = {}
+                # Nuke the copied lines
+                retpicking.move_ids.unlink()
+                for move in picking.move_ids.filtered(lambda k: k.ongoing_line_number in linenumbers):
+                    newline = self.copy_line(move, retpicking)
+                    linemap[move.ongoing_line_number] = newline
+
+                movelinemap = {}
+                orglines = self.env['stock.move.line'].search([('ongoing_line_number', 'in', linenumbers)])
+                # Moves are duplicated by copy, movelines are not
+                for moveline in orglines.filtered(lambda k: k.ongoing_line_number in linenumbers):
+                    newline = self.copy_line(moveline, retpicking)
+                    movelinemap[moveline.ongoing_line_number] = newline
+
                 for (line_no, qty) in linez:
                     # line = self.env['stock.move'].search([('ongoing_line_number', '=', line_no)])
                     line = linemap.get(line_no) or movelinemap.get(line_no)
+                    _logger.info('Updating line %s with line no %s/%s', line, line_no, line.ongoing_line_number)
                     if not line:
                         raise ValidationError(_('Did not find Ongoing Line Number %s in map.') % line_no)
                     line.quantity = qty
-                    line.ongoing_line_number += '_r'
                     #line.message_post(body=message)
+        _logger.info('Finished processing return orders.')
+        return True
+
+    def copy_line(self, moveline, retpicking):
+        lineno = moveline.ongoing_line_number
+        retline = moveline.copy()
+        retline.ongoing_line_number = lineno + '_r'
+        retline.picking_id = retpicking
+        return retline
 
     def process_linez(self):
 
