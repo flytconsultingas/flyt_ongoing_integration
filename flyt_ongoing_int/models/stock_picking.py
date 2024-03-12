@@ -547,7 +547,7 @@ class StockPicking(models.Model):
                 for move in picking.move_ids.filtered(lambda k: k.ongoing_line_number in linenumbers):
                     newline = self.copy_line(move, retpicking)
                     linemap[move.ongoing_line_number] = newline
-                copied_moves.move_ids.unlink()
+                copied_moves.unlink()
 
                 movelinemap = {}
                 orglines = self.env['stock.move.line'].search([('ongoing_line_number', 'in', linenumbers)])
