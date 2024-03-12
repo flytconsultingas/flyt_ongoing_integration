@@ -505,6 +505,10 @@ class StockPicking(models.Model):
                     _logger.error('More than one %d', ret[1])
                     continue
 
+                if not ret[2]:
+                    _logger.info('Returned quantity is 0')
+                    continue
+
                 line = self.env['stock.move'].search([('ongoing_line_number', '=', ret[1])])
                 if not line:
                     _logger.info('Move with ongoing number %s not found, looking for moveline' % ret[1])
