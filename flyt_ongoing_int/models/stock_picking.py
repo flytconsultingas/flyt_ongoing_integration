@@ -542,11 +542,12 @@ class StockPicking(models.Model):
                 retpicking.message_post(body=message)
 
                 linemap = {}
-                # Nuke the copied lines
-                retpicking.move_ids.unlink()
+                # Nuke the copied lines afterwards, to escape the "Quantity or Reserved Quantity should be set" exception.
+                copied_moves = retpicking.move_ids
                 for move in picking.move_ids.filtered(lambda k: k.ongoing_line_number in linenumbers):
                     newline = self.copy_line(move, retpicking)
                     linemap[move.ongoing_line_number] = newline
+                copied_moves.move_ids.unlink()
 
                 movelinemap = {}
                 orglines = self.env['stock.move.line'].search([('ongoing_line_number', 'in', linenumbers)])
