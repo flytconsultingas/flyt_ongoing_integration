@@ -477,7 +477,7 @@ class OngoingRequest():
         for line in order_items:
             if not line.ongoing_line_number:
                 ongoing_line_number = random.randrange(1000)
-                line.write({'ongoing_line_number': ongoing_line_number})
+                line.update({'ongoing_line_number': ongoing_line_number})
                 _logger.debug('Writing line number %s for line id %s', ongoing_line_number, line.id)
             else:
                 ongoing_line_number = line.ongoing_line_number
