@@ -576,10 +576,13 @@ class StockPicking(models.Model):
         return True
 
     def copy_line(self, moveline, retpicking):
+        _logger.debug('copy_line %s of picking %s - numnber %s', moveline, retpicking, moveline.ongoing_line_number)
         lineno = moveline.ongoing_line_number
         retline = moveline.copy()
+        _logger.debug('copy_line old qty %s new qty %s', moveline.quantity, retline.quantity)
         retline.ongoing_line_number = lineno + '_r'
         retline.picking_id = retpicking
+        _logger.debug('copy_line ok')
         return retline
 
     def process_linez(self):
