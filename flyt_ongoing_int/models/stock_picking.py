@@ -509,22 +509,24 @@ class StockPicking(models.Model):
                     _logger.info('Returned quantity is 0')
                     continue
 
-                line = self.env['stock.move'].search([('ongoing_line_number', '=', ret[1])])
-                if not line:
+                move = self.env['stock.move'].search([('ongoing_line_number', '=', ret[1])])
+                if not move:
                     _logger.info('Move with ongoing number %s not found, looking for moveline' % ret[1])
                     line = self.env['stock.move.line'].search([('ongoing_line_number', '=', ret[1])])
                     if not line:
                         _logger.error('Move Line with ongoing number %s not found either' % ret[1])
                         continue
-                if len(line) > 1:
+                    else:
+                        move = line.move_id
+                if len(move) > 1:
                     _logger.info('More than one order line with ongoing number %s found: %s', ret[1], line)
                     raise ValidationError(_('More than one order line with ongoing numer %s found') % ret[1])
 
-                picking = line.picking_id
-                lines2process.append((line, ret[2]))
+                picking = move.picking_id
+                lines2process.append((move, ret[2]))
                 if not picking in pickings:
                     pickings[picking] = []
-                pickings[picking].append((ret[1], ret[2]))
+                pickings[picking].append((ret[1], ret[2], move))
 
             for picking, linez in pickings.items():
                 if [x[1] for x in linez if not (x[1])]:
@@ -540,38 +542,14 @@ class StockPicking(models.Model):
                 retpicking.location_dest_id = src
                 message = Markup(f'<strong>Created return move</strong> from picking {picking.name} for Ongoing order {picking.ongoing_order_id}')
                 retpicking.message_post(body=message)
+                retpicking.move_ids.unlink()
+                assert len(retpicking.move_ids) == 0, 'Copied moves %s' % len(retpicking.move_ids)
+                for (lineno, qty, move_id) in linez:
+                    newmove = move_id.copy()
+                    newmove.quantity = qty
+                    newmove.picking_id = retpicking
+                    _logger.debug('Picking %s Move %s Returned qty %s', retpicking.name, newmove.name, newmove.quantity)
 
-                linemap = {}
-                # Nuke the copied lines afterwards, to escape the "Quantity or Reserved Quantity should be set" exception.
-                copied_moves = retpicking.move_ids.filtered(lambda k: k.ongoing_line_number not in linenumbers)
-                old_moves = retpicking.move_ids
-                _logger.debug('Copying stock.move')
-                for move in picking.move_ids.filtered(lambda k: k.ongoing_line_number in linenumbers):
-                    newline = self.copy_line(move, retpicking)
-                    _logger.debug('Copying a stock.move %s into %s', move, newline)
-                    linemap[move.ongoing_line_number] = newline
-                _logger.debug('Deleting old ones %s out of %s', copied_moves, old_moves)
-                copied_moves.unlink()
-
-                #movelinemap = {}
-                #orglines = self.env['stock.move.line'].search([('ongoing_line_number', 'in', linenumbers)])
-                # Moves are duplicated by copy, movelines are not
-                #_logger.debug('Copying stock move lines')
-                #for moveline in orglines.filtered(lambda k: k.ongoing_line_number in linenumbers):
-                #    newline = self.copy_line(moveline, retpicking)
-                #    _logger.debug('Copying a stock.move.line %s into %s', moveline, newline)
-                #    movelinemap[moveline.ongoing_line_number] = newline
-                #_logger.debug('Copied stock move lines')
-
-                #for (line_no, qty) in linez:
-                #    # line = self.env['stock.move'].search([('ongoing_line_number', '=', line_no)])
-                #    line = linemap.get(line_no) or movelinemap.get(line_no)
-                #    _logger.info('Updating line %s with line no %s/%s', line, line_no, line.ongoing_line_number)
-                #    if not line:
-                #        raise ValidationError(_('Did not find Ongoing Line Number %s in map.') % line_no)
-                #    _logger.debug('Updating %s quantity %s to %s', line, quantity, qty)
-                #    line.quantity = qty
-                #    #line.message_post(body=message)
         _logger.info('Finished processing return orders.')
         return True
 
