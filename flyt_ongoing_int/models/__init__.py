@@ -12,3 +12,4 @@ from . import delivery_carrier
 from . import stock_move
 from . import stock_move_line
 from . import product_product
+from . import processed_line

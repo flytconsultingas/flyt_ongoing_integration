@@ -577,6 +577,7 @@ class OngoingRequest():
             'success': False,
             'message': False,
         }
+        _logger.info('_prepare_get_orders_by_query Last Sync %s', last_sync)
         try:
             self.response = self.client.service.GetOrdersByQuery(
                 GoodsOwnerCode=self.good_owner_code,
