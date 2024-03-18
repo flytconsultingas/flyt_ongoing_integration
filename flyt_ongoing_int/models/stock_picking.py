@@ -519,6 +519,7 @@ class StockPicking(models.Model):
 
 
     def process_return_orders(self, orders):
+        processed_lines = []
         for order in orders['Order']:
             orderid = order['OrderInfo']['OrderId']
             picked = order['PickedOrderLines']
@@ -530,7 +531,7 @@ class StockPicking(models.Model):
             _logger.info('Returns for order %s is %s', orderid, returns)
             created_lines = []
             lines2process = []
-            processed_lines = []
+
             pickings = {}
             for ret in returns:
                 if not ret[1] or ret[1]=='False':
