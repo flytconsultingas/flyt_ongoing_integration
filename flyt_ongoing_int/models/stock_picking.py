@@ -320,6 +320,7 @@ class StockPicking(models.Model):
                 picking_map = request.parse_tracking_numbers(response_dict)
                 pickings._update_tracking_ref(picking_map)
                 pickings._update_serial_number_line(picking_map)
+                pickings._update_tracking_url(picking_map)
         except Exception as e:
             _logger.info('Ongoing: Failed to connect! :: {}'.format(str(e)))
         return True
@@ -390,6 +391,18 @@ class StockPicking(models.Model):
                 picking.carrier_tracking_ref = tracking_id
                 # Since it has a tracking this means it has been sent. So we validate it.
                 picking.button_validate()
+
+    def _update_tracking_url(self, picking_map):
+        for picking in self:
+            order_id = int(picking.ongoing_order_id)
+            tracking_url =  picking_map['status'].get(order_id) == 'Sendt' and \
+                picking_map.get('tracking_url') and picking_map.get('tracking_url').get(order_id, False)
+            if tracking_url:
+                picking.message_post(body=Markup(
+                    f'Antall kolli {len(tracking_url)}'))
+                links = '&nbsp;'.join([f'<a href="{url}">{url}</a>' for url in tracking_url])
+                picking.message_post(body=Markup(
+                    f'Tracking URL {links}'))
 
     def _update_serial_number_line(self, picking_map):
         for picking in self:

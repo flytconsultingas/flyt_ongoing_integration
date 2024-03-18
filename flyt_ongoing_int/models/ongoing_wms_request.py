@@ -612,7 +612,7 @@ class OngoingRequest():
 
     def parse_tracking_numbers(self, response):
         Orders = response.get('Order')
-        picking_map = {"status": {}, "tracking": {}, "serial": {}}
+        picking_map = {"status": {}, "tracking": {}, "tracking_url": {}, "serial": {}}
 
         for Order in Orders:
             OrderInfo = Order['OrderInfo']
@@ -626,8 +626,14 @@ class OngoingRequest():
             # Obtain tracking number
             if order_status == "Sendt" and OrderPalletItems:
                 for pallet_item in OrderPalletItems['OrderPalletItemInfo']:
+                    if not pallet_item['IsTaPalletItem']:
+                        continue
                     tracking_number = pallet_item['LabelId'] or ''
+                    tracking_url = pallet_item.get('Tracking', None) and pallet_item['Tracking']['TrackingUrl']
                     picking_map['tracking'][order_id] = tracking_number
+                    if order_id not in picking_map['tracking_url']:
+                        picking_map['tracking_url'][order_id] = []
+                    picking_map['tracking_url'][order_id].append(tracking_url)
 
             # Obtain serials
             if order_status == "Sendt" and Order['PickedArticleItems']:
