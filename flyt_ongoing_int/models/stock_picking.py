@@ -497,16 +497,12 @@ class StockPicking(models.Model):
 
     def line_processed(self, picking, linenumbers):
         """ Log that these lines have been processed, so we won't do it again """
-        try:
-            for line in linenumbers:
-                _logger.debug('ongoing line_processed %s %s', picking, line)
-                self.env['ongoing_processed_line'].create(
-                    {'picking_id': picking.id, 'line_no': int(line)}
-                )
-        except UniqueViolation:
-            _logger.debug('Hit the uniqe')
-            return False
-        return True
+        for line in linenumbers:
+            _logger.debug('ongoing line_processed %s %s', picking, line)
+            self.env['ongoing_processed_line'].create(
+                {'picking_id': picking.id, 'line_no': int(line)}
+            )
+            self.env['ongoing_processed_line'].flush()
 
     def line_processed_already(self, picking, linenumbers):
         """ Check if these lines have been processed already """
@@ -596,7 +592,7 @@ class StockPicking(models.Model):
                     newmove.picking_id = retpicking
                     processed_lines.append((picking, lineno))
 
-        _logger.info('Finished processing return orders.')
+        _logger.info('Finished processing return orders. %s', processed_lines)
         for (picking, lineno) in processed_lines:
             self.line_processed(picking, [lineno])
 
