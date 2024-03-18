@@ -498,16 +498,16 @@ class StockPicking(models.Model):
     def line_processed(self, picking, linenumbers):
         """ Log that these lines have been processed, so we won't do it again """
         for line in linenumbers:
-            _logger.debug('line_processed %s %s', picking, line)
+            _logger.debug('ongoing line_processed %s %s', picking, line)
             self.env['ongoing_processed_line'].create(
-                {'picking_id': picking.id, 'line_no': line}
+                {'picking_id': picking.id, 'line_no': int(line)}
             )
     def line_processed_already(self, picking, linenumbers):
         """ Check if these lines have been processed already """
         for line in linenumbers:
             res = self.env['ongoing_processed_line'].search(
                 [('picking_id', '=', picking.id),
-                 ('line_no', '=', line)]
+                 ('line_no', '=', int(line))]
             )
             if res:
                 _logger.error('line_processed_already %s %s', picking, line)
