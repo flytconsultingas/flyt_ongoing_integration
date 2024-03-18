@@ -12,7 +12,7 @@ from odoo.exceptions import UserError, ValidationError
 from odoo.tools import float_compare
 from .ongoing_wms_request import OngoingRequest
 from markupsafe import Markup
-
+from psycopg2.errors import UniqueViolation
 
 _logger = logging.getLogger(__name__)
 
@@ -497,11 +497,17 @@ class StockPicking(models.Model):
 
     def line_processed(self, picking, linenumbers):
         """ Log that these lines have been processed, so we won't do it again """
-        for line in linenumbers:
-            _logger.debug('ongoing line_processed %s %s', picking, line)
-            self.env['ongoing_processed_line'].create(
-                {'picking_id': picking.id, 'line_no': int(line)}
-            )
+        try:
+            for line in linenumbers:
+                _logger.debug('ongoing line_processed %s %s', picking, line)
+                self.env['ongoing_processed_line'].create(
+                    {'picking_id': picking.id, 'line_no': int(line)}
+                )
+        except UniqueViolation:
+            _logger.debug('Hit the uniqe')
+            return False
+        return True
+
     def line_processed_already(self, picking, linenumbers):
         """ Check if these lines have been processed already """
         for line in linenumbers:
@@ -587,7 +593,8 @@ class StockPicking(models.Model):
                     newmove.quantity = qty
                     newmove.picking_id = retpicking
                     _logger.debug('Picking %s Move %s Returned qty %s', retpicking.name, newmove.name, newmove.quantity)
-                    self.line_processed(picking, linenumbers)
+                    if not self.line_processed(picking, linenumbers):
+                        _logger.info('Possibly duplicate return %s %s', picking, linenumbers)
 
         _logger.info('Finished processing return orders.')
         return True
