@@ -592,12 +592,11 @@ class StockPicking(models.Model):
                     newmove.quantity = qty
                     newmove.picking_id = retpicking
                     processed_lines.append((picking, lineno))
+                    _logger.debug('Picking %s Move %s Returned qty %s', retpicking.name, newmove.name, newmove.quantity)
 
         _logger.info('Finished processing return orders. %s', processed_lines)
         for (picking, lineno) in processed_lines:
             self.line_processed(picking, [lineno])
-
-        _logger.debug('Picking %s Move %s Returned qty %s', retpicking.name, newmove.name, newmove.quantity)
 
         return True
 
