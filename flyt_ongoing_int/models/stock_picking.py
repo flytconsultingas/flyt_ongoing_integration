@@ -568,8 +568,11 @@ class StockPicking(models.Model):
                 retpicking = picking.copy()
                 retpicking.ongoing_order_id = picking.ongoing_order_id
                 linenumbers = [x[0] for x in linez]
+                _logger.debug('line_processed_already??? %s %s', picking, linenumbers)
                 if self.line_processed_already(picking, linenumbers):
+                    _logger.debug('line_processed_already??? %s %s - seems like', picking, linenumbers)
                     continue
+                _logger.debug('line_processed_already??? %s %s - seems not', picking, linenumbers)
                 _logger.info('Copy of picking %s is called %s, processing lines %s', picking.name, retpicking.name, linenumbers)
                 src = retpicking.location_id
                 dst = retpicking.location_dest_id
