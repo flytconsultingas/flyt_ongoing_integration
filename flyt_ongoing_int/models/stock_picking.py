@@ -500,13 +500,13 @@ class StockPicking(models.Model):
         for line in linenumbers:
             _logger.debug('line_processed %s %s', picking, line)
             self.env['ongoing_processed_line'].create(
-                {'picking_id': picking, 'line_no': line}
+                {'picking_id': picking.id, 'line_no': line}
             )
     def line_processed_already(self, picking, linenumbers):
         """ Check if these lines have been processed already """
         for line in linenumbers:
             res = self.env['ongoing_processed_line'].search(
-                [('picking_id', '=', picking),
+                [('picking_id', '=', picking.id),
                  ('line_no', '=', line)]
             )
             if res:
