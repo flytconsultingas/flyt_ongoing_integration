@@ -534,6 +534,7 @@ class StockPicking(models.Model):
             _logger.info('Returns for order %s is %s', orderid, returns)
             created_lines = []
             lines2process = []
+            processed_lines = []
             pickings = {}
             for ret in returns:
                 if not ret[1] or ret[1]=='False':
@@ -575,10 +576,11 @@ class StockPicking(models.Model):
                 retpicking.ongoing_order_id = picking.ongoing_order_id
                 linenumbers = [x[0] for x in linez]
                 _logger.debug('line_processed_already??? %s %s', picking, linenumbers)
-                if self.line_processed_already(picking, linenumbers):
-                    _logger.debug('line_processed_already??? %s %s - seems like', picking, linenumbers)
-                    continue
-                _logger.debug('line_processed_already??? %s %s - seems not', picking, linenumbers)
+                already_done = [(picking, line) in processed_lines for line in linenumbers]
+                if any(already_done) or self.line_processed_already(picking, linenumbers):
+                        _logger.debug('line_processed_already?? %s %s seems like', picking, linenumbers)
+                        continue
+
                 _logger.info('Copy of picking %s is called %s, processing lines %s', picking.name, retpicking.name, linenumbers)
                 src = retpicking.location_id
                 dst = retpicking.location_dest_id
@@ -592,11 +594,14 @@ class StockPicking(models.Model):
                     newmove = move_id.copy()
                     newmove.quantity = qty
                     newmove.picking_id = retpicking
-                    _logger.debug('Picking %s Move %s Returned qty %s', retpicking.name, newmove.name, newmove.quantity)
-                    if not self.line_processed(picking, linenumbers):
-                        _logger.info('Possibly duplicate return %s %s', picking, linenumbers)
+                    processed_lines.append(picking, lineno)
 
         _logger.info('Finished processing return orders.')
+        for (picking, lineno) in processed_lines:
+            self.line_processed(picking, [lineno])
+
+        _logger.debug('Picking %s Move %s Returned qty %s', retpicking.name, newmove.name, newmove.quantity)
+
         return True
 
 
