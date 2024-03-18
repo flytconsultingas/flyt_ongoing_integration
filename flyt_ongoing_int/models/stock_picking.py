@@ -579,7 +579,6 @@ class StockPicking(models.Model):
                         continue
 
                 _logger.info('Copy of picking %s is called %s, processing lines %s', picking.name, retpicking.name, linenumbers)
-                processed_lines.append((picking, linenumbers))
                 src = retpicking.location_id
                 dst = retpicking.location_dest_id
                 retpicking.location_id = dst  # Turn around
@@ -592,6 +591,7 @@ class StockPicking(models.Model):
                     newmove = move_id.copy()
                     newmove.quantity = qty
                     newmove.picking_id = retpicking
+                    processed_lines.append((picking, lineno))
 
         _logger.info('Finished processing return orders. %s', processed_lines)
         for (picking, lineno) in processed_lines:
