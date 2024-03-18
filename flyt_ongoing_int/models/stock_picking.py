@@ -502,7 +502,7 @@ class StockPicking(models.Model):
             self.env['ongoing_processed_line'].create(
                 {'picking_id': picking.id, 'line_no': int(line)}
             )
-            self.env['ongoing_processed_line'].flush()
+            #self.env['ongoing_processed_line'].flush()
 
     def line_processed_already(self, picking, linenumbers):
         """ Check if these lines have been processed already """
