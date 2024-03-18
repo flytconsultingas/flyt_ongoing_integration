@@ -495,6 +495,26 @@ class StockPicking(models.Model):
             new_ids.append(self.create(order))
         return new_ids
 
+    def line_processed(self, picking, linenumbers):
+        """ Log that these lines have been processed, so we won't do it again """
+        for line in linenumbers:
+            _logger.debug('line_processed %s %s', picking, line)
+            self.env['ongoing_processed_line'].create(
+                {'picking_id': picking, 'line_no': line}
+            )
+    def line_processed_already(self, picking, linenumbers):
+        """ Check if these lines have been processed already """
+        for line in linenumbers:
+            res = self.env['ongoing_processed_line'].search(
+                [('picking_id', '=', picking),
+                 ('line_no', '=', line)]
+            )
+            if res:
+                _logger.error('line_processed_already %s %s', picking, line)
+                return True
+        return False
+
+
 
     def process_return_orders(self, orders):
         for order in orders['Order']:
@@ -548,7 +568,7 @@ class StockPicking(models.Model):
                 retpicking = picking.copy()
                 retpicking.ongoing_order_id = picking.ongoing_order_id
                 linenumbers = [x[0] for x in linez]
-                if line_processed_already(picking, linenumbers):
+                if self.line_processed_already(picking, linenumbers):
                     continue
                 _logger.info('Copy of picking %s is called %s, processing lines %s', picking.name, retpicking.name, linenumbers)
                 src = retpicking.location_id
@@ -564,29 +584,10 @@ class StockPicking(models.Model):
                     newmove.quantity = qty
                     newmove.picking_id = retpicking
                     _logger.debug('Picking %s Move %s Returned qty %s', retpicking.name, newmove.name, newmove.quantity)
-                    lines_processed(picking, linenumbers)
+                    self.line_processed(picking, linenumbers)
 
         _logger.info('Finished processing return orders.')
         return True
-
-    def lines_processed(self, picking, linenumbers):
-        """ Log that these lines have been processed, so we won't do it again """
-        for line in linenumbers:
-            _logger.debug('line_processed %s %s', picking, line)
-            self.env['ongoing_processed_line'].create(
-                {'picking_id': picking, 'line_no': line}
-            )
-    def line_processed_already(self, picking, linenumbers):
-        """ Check if these lines have been processed already """
-        for line in linenumbers:
-            res = self.env['ongoing_processed_line'].search(
-                [('picking_id', '=', picking),
-                 ('line_no', '=', line)]
-            )
-            if res:
-                _logger.error('line_processed_already %s %s', picking, line)
-                return True
-        return False
 
 
     def copy_line(self, moveline, retpicking):
