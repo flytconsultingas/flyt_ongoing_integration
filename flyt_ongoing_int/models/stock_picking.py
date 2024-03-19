@@ -24,6 +24,7 @@ class StockPicking(models.Model):
     _inherit = ['stock.picking', 'ongoing.logger.mixin']
 
     ongoing_order_id = fields.Char(copy=False)
+    ongoing_goods_info = fields.Integer(copy=False)
     flyt_location_dest_id_usage = fields.Selection(related='location_dest_id.usage', store=True)
 
     ongoing_sync_serial_numbers = fields.Boolean(related='company_id.ongoing_sync_serial_numbers', store=False)
@@ -321,6 +322,7 @@ class StockPicking(models.Model):
                 pickings._update_tracking_ref(picking_map)
                 pickings._update_serial_number_line(picking_map)
                 pickings._update_tracking_url(picking_map)
+                pickings._update_goods_info(picking_map)
         except Exception as e:
             _logger.info('Ongoing: Failed to connect! :: {}'.format(str(e)))
         return True
@@ -391,6 +393,19 @@ class StockPicking(models.Model):
                 picking.carrier_tracking_ref = tracking_id
                 # Since it has a tracking this means it has been sent. So we validate it.
                 picking.button_validate()
+
+    def _update_goods_info(self, picking_map):
+        for picking in self:
+            order_id = int(picking.ongoing_order_id)
+            goods_info =  picking_map['status'].get(order_id) == 'Sendt' and \
+                picking_map.get('goods_info') and picking_map.get('goods_info').get(order_id, False)
+            if not goods_info:
+                continue
+
+            _logger.debug('Setting goods_info for %s', picking.name)
+            ant_kolli = len(goods_info)
+            picking.ongoing_goods_info = ant_kolli
+
 
     def _update_tracking_url(self, picking_map):
         for picking in self:
@@ -516,7 +531,18 @@ class StockPicking(models.Model):
                 return True
         return False
 
+    def process_return_cause(self, order, ret_article_syscode):
+        pi = order['PickedArticleItems'] and order['PickedArticleItems']['PickedArticleItem']
+        if not pi:
+            return None
+        #picked_article = [x for x in pi if x['Article']['SystemId'] == ret_article_syscode]
+        #OrderLineSystemId
+        picked_article = [x for x in pi if x['OrderLineSystemId'] == ret_article_syscode]
+        causes = [x['ReturnCauseName'] for x in picked_article if x['ReturnCauseName']]
+        if not any(causes):
+            return None
 
+        return [x for x in causes if x][0]
 
     def process_return_orders(self, orders):
         processed_lines = []
@@ -525,7 +551,7 @@ class StockPicking(models.Model):
             picked = order['PickedOrderLines']
             if not picked:
                 continue
-            returns = [(x['Article'], x['ExternalOrderLineCode'], x['ReturnedNumberOfItems'])
+            returns = [(x['Article'], x['ExternalOrderLineCode'], x['ReturnedNumberOfItems'], x['OrderLineSystemId'])
                        for x in picked['PickedOrderLine']]
             # artikkel = SystemId Name ArticleNumber
             _logger.info('Returns for order %s is %s', orderid, returns)
@@ -533,7 +559,12 @@ class StockPicking(models.Model):
             lines2process = []
 
             pickings = {}
+
             for ret in returns:
+                #ret_article_syscode = ret[0]['SystemId']
+                ret_article_syscode = ret[3]
+                ret_cause = self.process_return_cause(order, ret_article_syscode)
+
                 if not ret[1] or ret[1]=='False':
                     _logger.error('No external order line code')
                     continue
@@ -560,6 +591,8 @@ class StockPicking(models.Model):
                     raise ValidationError(_('More than one order line with ongoing numer %s found') % ret[1])
 
                 picking = move.picking_id
+                if ret_cause:
+                    picking.message_post(Markup(f'Retur årsak: {ret_cause}'))
                 lines2process.append((move, ret[2]))
                 if not picking in pickings:
                     pickings[picking] = []
@@ -599,50 +632,6 @@ class StockPicking(models.Model):
             self.line_processed(picking, [lineno])
 
         return True
-
-
-    def copy_line(self, moveline, retpicking):
-        assert False # This code can be deleted
-        _logger.debug('copy_line %s of picking %s - numnber %s', moveline, retpicking, moveline.ongoing_line_number)
-        lineno = moveline.ongoing_line_number
-        _logger.debug('qty to copy %s', moveline.quantity)
-        retline = moveline.copy()
-        _logger.debug('copy_line old qty %s new qty %s', moveline.quantity, retline.quantity)
-        retline.ongoing_line_number = lineno + '_r'
-        retline.picking_id = retpicking
-        _logger.debug('copy_line ok')
-        return retline
-
-    def process_linez(self):
-
-        for ret in lines2process:
-            line = ret[0]
-            created_lines.append(line.ongoing_line_number)
-            qty = ret[1]
-            retline = line.copy()
-            if retline.ongoing_line_number:
-                retline.ongoing_line_number += '_r'
-            retline.quantity = qty
-            src = retline.location_id
-            dst = retline.location_dest_id
-            retline.location_id = dst  # Turn around
-            retline.location_dest_id = src
-            message = Markup('<strong>Created return move</strong>')
-            line.picking_id.message_post(body=message)
-
-    def finn_sml(self):
-        ###
-        line = self.env['stock.move.line'].search([('ongoing_line_number', '=', ret[1])])
-        if not line:
-            raise ValidationError(_('Order line with ongoing number %s not found') % ret[1])
-        retline = line.copy()
-        retline.quantity = ret[2]
-        src = retline.location_id
-        dst = retline.location_dest_id
-        retline.location_id = dst  # Turn around
-        retline.location_dest_id = src
-        message = Markup('<strong>Created return move</strong>')
-        line.picking_id.message_post(body=message)
 
     @api.model
     def _sync_return_order(self):

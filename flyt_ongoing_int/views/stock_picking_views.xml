@@ -31,6 +31,7 @@
                         <field name="purchase_id" invisible="1"/>
                         <field name="sale_id" invisible="1"/>
                         <field name="ongoing_order_id" readonly="True"/>
+                        <field name="ongoing_goods_info" readonly="True" />
                     </group>
                 </page>
             </xpath>
