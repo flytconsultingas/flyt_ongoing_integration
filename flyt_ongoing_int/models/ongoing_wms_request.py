@@ -285,6 +285,7 @@ class OngoingRequest():
 
         OrderInfoClass.WayOfDeliveryType = self._prepare_way_of_delivery_type(data)
         OrderInfoClass.TermsOfDeliveryType = self._prepare_terms_of_delivery_type()
+        OrderInfoClass.OrderRemark = data['remark']
         return OrderInfoClass
 
     def _prepare_way_of_delivery_type(self, data):

@@ -247,6 +247,7 @@ class StockPicking(models.Model):
             'reference': internal_transfer.name if internal_transfer and len(internal_transfer) == 1 else self.name,
             'in_date': self.scheduled_date or '',
             'move_type': self._prepare_move_type(self.move_type),
+            'remark': self.note or '',
             'carrier': self.carrier_id and (self.carrier_id.transport_service_code, self.carrier_id.name)
         }
         return data
