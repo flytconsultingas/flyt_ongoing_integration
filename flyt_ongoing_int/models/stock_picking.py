@@ -629,10 +629,10 @@ class StockPicking(models.Model):
 
         retpicking.ongoing_order_id = picking.ongoing_order_id
         _logger.info('Copy of picking %s is called %s, processing lines %s', picking.name, retpicking.name, linenumbers)
-        src = retpicking.location_id
-        dst = retpicking.location_dest_id
-        # retpicking.location_id = dst  # Turn around
-        # retpicking.location_dest_id = src
+        src = picking.location_id
+        dst = picking.location_dest_id
+        retpicking.location_id = dst  # Turn around
+        retpicking.location_dest_id = src
         return retpicking
 
     def copy_move(self, retpicking, lineno, qty, move_id):
