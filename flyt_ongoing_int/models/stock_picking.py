@@ -565,8 +565,8 @@ class StockPicking(models.Model):
             vals['location_dest_id'] = src_picking.location_id.id
         return vals
 
-    def process_return_orders(self, orders):
-        processed_lines = []
+    def get_return_pickings(self, orders):
+        pickings = {}
         for order in orders['Order']:
             orderid = order['OrderInfo']['OrderId']
             picked = order['PickedOrderLines']
@@ -576,10 +576,6 @@ class StockPicking(models.Model):
                        for x in picked['PickedOrderLine']]
             # artikkel = SystemId Name ArticleNumber
             _logger.info('Returns for order %s is %s', orderid, returns)
-            created_lines = []
-            lines2process = []
-
-            pickings = {}
 
             for ret in returns:
                 #ret_article_syscode = ret[0]['SystemId']
@@ -590,9 +586,9 @@ class StockPicking(models.Model):
                     _logger.error('No external order line code')
                     continue
 
-                if ret[1] in created_lines:
-                    _logger.error('More than one %d', ret[1])
-                    continue
+                #if ret[1] in created_lines:
+                #    _logger.error('More than one %d', ret[1])
+                #    continue
 
                 if not ret[2]:
                     _logger.info('Returned quantity is 0')
@@ -615,39 +611,63 @@ class StockPicking(models.Model):
                 if ret_cause:
                     _logger.debug('Picking %s retur årsak %s', picking.name, ret_cause)
                     picking.message_post(Markup(f'Retur årsak: {ret_cause}'))
-                lines2process.append((move, ret[2]))
+
                 if not picking in pickings:
                     pickings[picking] = []
                 pickings[picking].append((ret[1], ret[2], move))
+        return pickings
 
-            for picking, linez in pickings.items():
-                if [x[1] for x in linez if not (x[1])]:
-                    _logger.error('Zero qty return. Should not happen')
-                    continue
-                retpicking = picking.copy(self._prepare_picking_default_values(picking))
-                retpicking.ongoing_order_id = picking.ongoing_order_id
-                linenumbers = [x[0] for x in linez]
-                _logger.debug('line_processed_already??? %s %s', picking, linenumbers)
-                already_done = [(picking, line) in processed_lines for line in linenumbers]
-                if any(already_done) or self.line_processed_already(picking, linenumbers):
-                        _logger.debug('line_processed_already?? %s %s seems like', picking, linenumbers)
-                        continue
+    def make_return(self, picking, linenumbers):
+        _logger.debug('Processing returns for picking %s for lines %s', picking.name, linenumbers)
+        if len(picking.return_ids) > 0:
+            raise ValidationError(_('Picking %s already has returns') % picking.name)
+        retpicking = picking.copy(self._prepare_picking_default_values(picking))
+        if len(retpicking.move_ids) > 0:
+            raise ValidationError(_('Newly created return %s has moves already') % retpicking.name)
+        if len(picking.return_ids) != 1:
+            raise ValidationError(_('Picking %s has other returns %s') % (picking.name, picking.return_ids))
 
-                _logger.info('Copy of picking %s is called %s, processing lines %s', picking.name, retpicking.name, linenumbers)
-                src = retpicking.location_id
-                dst = retpicking.location_dest_id
-                #retpicking.location_id = dst  # Turn around
-                #retpicking.location_dest_id = src
-                message = Markup(f'<strong>Created return move</strong> from picking {picking.name} for Ongoing order {picking.ongoing_order_id}')
-                retpicking.message_post(body=message)
-                retpicking.move_ids.unlink()
-                assert len(retpicking.move_ids) == 0, 'Copied moves %s' % len(retpicking.move_ids)
-                for (lineno, qty, move_id) in linez:
-                    newmove = move_id.copy()
-                    newmove.quantity = qty
-                    newmove.picking_id = retpicking
-                    processed_lines.append((picking, lineno))
-                    _logger.debug('Picking %s Move %s Returned qty %s', retpicking.name, newmove.name, newmove.quantity)
+        retpicking.ongoing_order_id = picking.ongoing_order_id
+        _logger.info('Copy of picking %s is called %s, processing lines %s', picking.name, retpicking.name, linenumbers)
+        src = retpicking.location_id
+        dst = retpicking.location_dest_id
+        # retpicking.location_id = dst  # Turn around
+        # retpicking.location_dest_id = src
+        return retpicking
+
+    def copy_move(self, retpicking, lineno, qty, move_id):
+        newmove = move_id.copy()
+        newmove.quantity = qty
+        newmove.picking_id = retpicking
+        _logger.debug('Picking %s Move %s Returned qty %s', retpicking.name, newmove.name, newmove.quantity)
+        return lineno
+
+    def process_return_orders(self, orders):
+        processed_lines = []
+        pickings = self.get_return_pickings(orders)
+
+        _logger.debug('Processing returns %s', len(pickings.keys()))
+        for picking, linez in pickings.items():
+            linenumbers = [x[0] for x in linez]
+            if [x[1] for x in linez if not (x[1])]:
+                _logger.error('Zero qty return. Should not happen')
+                continue
+
+            retpicking = self.make_return(picking, linenumbers)
+            _logger.debug('line_processed_already??? %s %s', picking, linenumbers)
+            already_done = [(picking, line) in processed_lines for line in linenumbers]
+            if any(already_done) or self.line_processed_already(picking, linenumbers):
+                _logger.debug('line_processed_already?? %s %s seems like', picking, linenumbers)
+                continue
+
+            message = Markup(f'<strong>Created return move</strong> from picking {picking.name} for Ongoing order {picking.ongoing_order_id}')
+            retpicking.message_post(body=message)
+            retpicking.move_ids.unlink()
+            assert len(retpicking.move_ids) == 0, 'Copied moves %s' % len(retpicking.move_ids)
+            for (lineno, qty, move_id) in linez:
+                processed_lines.append((picking, self.copy_move(retpicking, lineno, qty, move_id)))
+            if len(picking.return_ids) != 1:
+                raise ValidationError(_('Picking %s has other returns %s') % (picking.name, picking.return_ids))
 
         _logger.info('Finished processing return orders. %s', processed_lines)
         for (picking, lineno) in processed_lines:
