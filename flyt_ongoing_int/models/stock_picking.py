@@ -546,22 +546,23 @@ class StockPicking(models.Model):
 
         return [x for x in causes if x][0]
 
-    def _prepare_picking_default_values(self):
+    def _prepare_picking_default_values(self, src_picking):
         """ Shamelessly copied from stock_picking_return.py """
+        assert src_picking.picking_type_id, 'Picking %s no picking type' % src_picking.name
         vals = {
             'move_ids': [],
-            'picking_type_id': self.picking_id.picking_type_id.return_picking_type_id
-                                   .id or self.picking_id.picking_type_id.id,
+            'picking_type_id': src_picking.picking_type_id.return_picking_type_id
+                                   .id or src_picking.picking_type_id.id,
             'state': 'draft',
-            'return_id': self.picking_id.id,
-            'origin': _("Return of %s", self.picking_id.name),
+            'return_id': src_picking.id,
+            'origin': _("Return of %s", src_picking.name),
         }
         # TestPickShip.test_mto_moves_return, TestPickShip.test_mto_moves_return_extra,
         # TestPickShip.test_pick_pack_ship_return, TestPickShip.test_pick_ship_return, TestPickShip.test_return_lot
-        if self.picking_id.location_dest_id:
-            vals['location_id'] = self.picking_id.location_dest_id.id
+        if src_picking.location_dest_id:
+            vals['location_id'] = src_picking.location_dest_id.id
         if self.location_id:
-            vals['location_dest_id'] = self.location_id.id
+            vals['location_dest_id'] = src_picking.location_id.id
         return vals
 
     def process_return_orders(self, orders):
@@ -623,7 +624,7 @@ class StockPicking(models.Model):
                 if [x[1] for x in linez if not (x[1])]:
                     _logger.error('Zero qty return. Should not happen')
                     continue
-                retpicking = picking.copy(self._prepare_picking_default_values())
+                retpicking = picking.copy(self._prepare_picking_default_values(picking))
                 retpicking.ongoing_order_id = picking.ongoing_order_id
                 linenumbers = [x[0] for x in linez]
                 _logger.debug('line_processed_already??? %s %s', picking, linenumbers)
