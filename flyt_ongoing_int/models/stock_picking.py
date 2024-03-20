@@ -5,6 +5,7 @@ import logging
 from dateutil.relativedelta import relativedelta
 import collections, functools, operator
 from xml.etree import ElementTree
+import lxml.html
 from zeep import helpers
 
 from odoo import models, api, fields, _
@@ -247,7 +248,7 @@ class StockPicking(models.Model):
             'reference': internal_transfer.name if internal_transfer and len(internal_transfer) == 1 else self.name,
             'in_date': self.scheduled_date or '',
             'move_type': self._prepare_move_type(self.move_type),
-            'remark': self.note or '',
+            'remark': lxml.html.fromstring(self.note).text_content() if self.note else '',
             'carrier': self.carrier_id and (self.carrier_id.transport_service_code, self.carrier_id.name)
         }
         return data
@@ -545,6 +546,24 @@ class StockPicking(models.Model):
 
         return [x for x in causes if x][0]
 
+    def _prepare_picking_default_values(self):
+        """ Shamelessly copied from stock_picking_return.py """
+        vals = {
+            'move_ids': [],
+            'picking_type_id': self.picking_id.picking_type_id.return_picking_type_id
+                                   .id or self.picking_id.picking_type_id.id,
+            'state': 'draft',
+            'return_id': self.picking_id.id,
+            'origin': _("Return of %s", self.picking_id.name),
+        }
+        # TestPickShip.test_mto_moves_return, TestPickShip.test_mto_moves_return_extra,
+        # TestPickShip.test_pick_pack_ship_return, TestPickShip.test_pick_ship_return, TestPickShip.test_return_lot
+        if self.picking_id.location_dest_id:
+            vals['location_id'] = self.picking_id.location_dest_id.id
+        if self.location_id:
+            vals['location_dest_id'] = self.location_id.id
+        return vals
+
     def process_return_orders(self, orders):
         processed_lines = []
         for order in orders['Order']:
@@ -593,6 +612,7 @@ class StockPicking(models.Model):
 
                 picking = move.picking_id
                 if ret_cause:
+                    _logger.debug('Picking %s retur årsak %s', picking.name, ret_cause)
                     picking.message_post(Markup(f'Retur årsak: {ret_cause}'))
                 lines2process.append((move, ret[2]))
                 if not picking in pickings:
@@ -603,7 +623,7 @@ class StockPicking(models.Model):
                 if [x[1] for x in linez if not (x[1])]:
                     _logger.error('Zero qty return. Should not happen')
                     continue
-                retpicking = picking.copy()
+                retpicking = picking.copy(self._prepare_picking_default_values())
                 retpicking.ongoing_order_id = picking.ongoing_order_id
                 linenumbers = [x[0] for x in linez]
                 _logger.debug('line_processed_already??? %s %s', picking, linenumbers)
@@ -615,8 +635,8 @@ class StockPicking(models.Model):
                 _logger.info('Copy of picking %s is called %s, processing lines %s', picking.name, retpicking.name, linenumbers)
                 src = retpicking.location_id
                 dst = retpicking.location_dest_id
-                retpicking.location_id = dst  # Turn around
-                retpicking.location_dest_id = src
+                #retpicking.location_id = dst  # Turn around
+                #retpicking.location_dest_id = src
                 message = Markup(f'<strong>Created return move</strong> from picking {picking.name} for Ongoing order {picking.ongoing_order_id}')
                 retpicking.message_post(body=message)
                 retpicking.move_ids.unlink()
