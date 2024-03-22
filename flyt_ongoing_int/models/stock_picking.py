@@ -674,6 +674,7 @@ class StockPicking(models.Model):
         _logger.info('Finished processing return orders. %s', processed_lines)
         for (picking, lineno) in processed_lines:
             self.line_processed(picking, [lineno])
+            picking.button_validate()
 
         return True
 
