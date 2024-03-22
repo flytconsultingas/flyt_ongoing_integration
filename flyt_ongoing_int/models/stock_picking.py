@@ -608,14 +608,10 @@ class StockPicking(models.Model):
                     raise ValidationError(_('More than one order line with ongoing numer %s found') % ret[1])
 
                 picking = move.picking_id
-                if ret_cause:
-                    _logger.debug('Picking %s retur årsak %s', picking.name, ret_cause)
-                    msg = Markup(_('Returårsak: %s') % ret_cause)
-                    picking.message_post(body=msg)
 
                 if not picking in pickings:
                     pickings[picking] = []
-                pickings[picking].append((ret[1], ret[2], move))
+                pickings[picking].append((ret[1], ret[2], move, ret_cause))
         return pickings
 
     def make_return(self, picking, linenumbers):
@@ -666,10 +662,19 @@ class StockPicking(models.Model):
             retpicking.message_post(body=message)
             retpicking.move_ids.unlink()
             assert len(retpicking.move_ids) == 0, 'Copied moves %s' % len(retpicking.move_ids)
-            for (lineno, qty, move_id) in linez:
+            ret_causes = set()
+            for (lineno, qty, move_id, ret_cause) in linez:
                 processed_lines.append((picking, self.copy_move(retpicking, lineno, qty, move_id)))
+                ret_causes.add(ret_cause)
             if len(picking.return_ids) != 1:
                 raise ValidationError(_('Picking %s has other returns %s') % (picking.name, picking.return_ids))
+            if ret_causes:
+                if len(ret_causes) > 1:
+                    raise ValidationError(_('Picking %s has more than one return cause %s') % (picking.name, ret_causes))
+                ret_cause = ret_causes.pop()
+                _logger.debug('Picking %s retur årsak %s', picking.name, ret_cause)
+                msg = Markup(_('Returårsak: %s') % ret_cause)
+                retpicking.message_post(body=msg)
 
         _logger.info('Finished processing return orders. %s', processed_lines)
         for (picking, lineno) in processed_lines:
