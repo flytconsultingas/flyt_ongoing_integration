@@ -676,10 +676,16 @@ class StockPicking(models.Model):
                 msg = Markup(_('Returårsak: %s') % ret_cause)
                 retpicking.message_post(body=msg)
 
+            try:
+                retpicking.button_validate()
+            except Exception as e:
+                _logger.exception('Unable to validate picking %s', picking.name, e)
+                retpicking.message_post(body=Markup('Unable to validate.'))
+
+
         _logger.info('Finished processing return orders. %s', processed_lines)
         for (picking, lineno) in processed_lines:
             self.line_processed(picking, [lineno])
-            picking.button_validate()
 
         return True
 

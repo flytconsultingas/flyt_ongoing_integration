@@ -93,7 +93,7 @@ class OngoingRequest():
                 Password=self.password,
                 art=self._prepare_article_definition(data),
             )
-            _logger.info(self.response)
+            _logger.debug(self.response)
             if 'ErrorMessage' in self.response:
                 formatted_response['error_message'] = self.response.ErrorMessage
             if 'GoodsOwnerOrderNumber' in self.response:
@@ -135,7 +135,7 @@ class OngoingRequest():
                 Password=self.password,
                 co=self._prepare_inorder_defination(data),
             )
-            _logger.info(self.response)
+            _logger.debug(self.response)
             if 'ErrorMessage' in self.response:
                 formatted_response['error_message'] = self.response.ErrorMessage
             if 'GoodsOwnerOrderNumber' in self.response:
@@ -236,7 +236,7 @@ class OngoingRequest():
                 Password=self.password,
                 Query=self._prepare_inbound_query(data),
             )
-            _logger.info(self.response)
+            _logger.debug(self.response)
             if 'ErrorMessage' in self.response:
                 formatted_response['error_message'] = self.response.ErrorMessage
             if 'GoodsOwnerOrderNumber' in self.response:
@@ -534,7 +534,7 @@ class OngoingRequest():
                 Password=self.password,
                 co=self._prepare_customer_order(data),
             )
-            _logger.info(self.response)
+            _logger.debug(self.response)
             if 'ErrorMessage' in self.response:
                 formatted_response['error_message'] = self.response.ErrorMessage
             if 'GoodsOwnerOrderNumber' in self.response:
@@ -586,7 +586,7 @@ class OngoingRequest():
                 Password=self.password,
                 query=self._prepare_orders(data, last_sync),
             )
-            _logger.info(self.response)
+            _logger.debug(self.response)
             formatted_response['response'] = self.response
             if not self.response:
                 return formatted_response
@@ -681,7 +681,7 @@ class OngoingRequest():
                 Password=self.password,
                 OrderId=order_id,
             )
-            _logger.info(self.response)
+            _logger.debug(self.response)
             if 'Success' in self.response:
                 formatted_response['success'] = self.response.Success
             if formatted_response['success'] and self.response['PickedArticleItems']:
@@ -705,7 +705,7 @@ class OngoingRequest():
                 GoodsOwnerCode='Lillelam, Odoo',
                 GetOrdersQuery=self._prepare_get_orders_by_query(),
             )
-            _logger.info(self.response)
+            _logger.debug(self.response)
             assert not self.response['ReturnOrders']
 
         except IOError:
