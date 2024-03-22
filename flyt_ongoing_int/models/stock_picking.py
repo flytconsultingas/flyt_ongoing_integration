@@ -610,7 +610,8 @@ class StockPicking(models.Model):
                 picking = move.picking_id
                 if ret_cause:
                     _logger.debug('Picking %s retur årsak %s', picking.name, ret_cause)
-                    picking.message_post(Markup(f'Retur årsak: {ret_cause}'))
+                    msg = Markup(f'Retur årsak: {ret_cause}')
+                    picking.message_post(body=msg)
 
                 if not picking in pickings:
                     pickings[picking] = []
