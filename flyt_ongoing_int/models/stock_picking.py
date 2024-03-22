@@ -654,12 +654,13 @@ class StockPicking(models.Model):
                 _logger.error('Zero qty return. Should not happen')
                 continue
 
-            retpicking = self.make_return(picking, linenumbers)
             _logger.debug('line_processed_already??? %s %s', picking, linenumbers)
             already_done = [(picking, line) in processed_lines for line in linenumbers]
             if any(already_done) or self.line_processed_already(picking, linenumbers):
                 _logger.debug('line_processed_already?? %s %s seems like', picking, linenumbers)
                 continue
+
+            retpicking = self.make_return(picking, linenumbers)
 
             message = Markup(f'<strong>Created return move</strong> from picking {picking.name} for Ongoing order {picking.ongoing_order_id}')
             retpicking.message_post(body=message)
